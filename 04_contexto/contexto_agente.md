@@ -330,7 +330,12 @@ en este proyecto. Mantener solo a título informativo.
 | 4 | R-2026-0077 | Trámite / Paso 3 / Puntos y Linderos | No se pueden COPIAR los NPN de los predios colindantes por ningún lado: el usuario tuvo que digitar manualmente cada NPN del colindante en el campo "NPN o nombre del colindante". No hay forma de copiar el NPN desde el mapa ni desde otra vista. Afecta la usabilidad y es propenso a errores de digitación. | Capturas 20261015_164646 / 20261015_164851. Confirmado por el usuario. |
 
 | 5 | R-2026-0077 | Paso 2/7 Propietario / % Participación | El único propietario (SANDRA MONICA VILLANUEVA QUINTANA) con tipo de derecho "Dominio" figura con % de participación = 0% (en el resumen aparece como "000031534120 (0E-10)", es decir 0). Lo esperado para un único propietario con dominio es 100%. | Capturas paso2 y paso7_resumen. Por confirmar con usuario si es dato de origen o cálculo de la plataforma. |
-| 6 | R-2026-0077 | Paso 7 Resumen / Fuente administrativa | En el "Resumen de cambios" la Fuente Administrativa muestra Tipo, Ente emisor, Adquisición y Municipio como "—" (vacíos), aunque en el Paso 5 se diligenciaron (Escritura Pública, Juzgado, C-Sucesion, Alcalá). El resumen no refleja los datos capturados. Posible no-persistencia o error de consolidación. | HTML 20261015_165728_paso7_resumen. A validar en la captura final. |
+| 6 | R-2026-0077 | Paso 7 Resumen / Fuente administrativa | DESCARTADO: era un falso positivo (el HTML estaba a medio cargar). Con el resumen cargado, los datos se muestran bien. No es inconsistencia. | HTML intermedio sin terminar de cargar. |
+| 7 | R-2026-0077 | Paso 7 / Validación topológica | VALIDACION CORRECTA (no es bug): el sistema detectó 2 errores que bloquean avanzar: (a) CUSTOM_TERRENO_TRASLAPE_VECINO: el terreno (predio 593) se traslapa 7.82 m² con el vecino 76364...10020 (predio 5); (b) FIJA_TRASLAPE_COLINDANTE: traslape con predio 76364...10020. El botón "Pasar borrador acto administrativo" queda bloqueado. La validación de solapes/topología FUNCIONA. | Captura 20261015_165946_paso7_errores. 2 Errores, 0 Warnings, 42 OK. |
+
+> OBSERVACION: el shape subido en el Paso 3 corrigió el área (a 3.672,97 m², 100%) pero
+> introdujo un traslape de 7.82 m² con el predio vecino. Para resolver: subir el vecino
+> como colindante con geometria corregida o ajustar la geometria del tramite.
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
