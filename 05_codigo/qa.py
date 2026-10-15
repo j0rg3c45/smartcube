@@ -1,51 +1,42 @@
 """
-SmartCube QA - Sesion interactiva sobre la plataforma catastral (Playwright).
+SmartCube QA - REPL de comandos conectado por CDP al navegador ya abierto.
 
-Abre la plataforma en un navegador controlado usando un perfil persistente
-(la sesion queda guardada tras el primer login manual) y entra en un modo
-interactivo (REPL) donde se ejecutan comandos: navegar, hacer clic, escribir en
-campos, presionar teclas, capturar HTML/screenshot, etc.
-
-MODO CONSERVADOR:
-- Las acciones que pueden guardar/confirmar/eliminar piden confirmacion antes
-  de ejecutarse (teclea 'si' para confirmar). Se pueden desactivar con 'lote on'
-  cuando el usuario autorice ejecucion en lote.
-- Nada se envia automaticamente: solo se actua ante un comando explicito.
+Se conecta al Chromium que lanzo 'navegador.py' (puerto CDP) y abre un REPL (qa>)
+para navegar, hacer clic, escribir, capturar, etc. Al estar separado del navegador,
+este script se puede CERRAR Y VOLVER A LANZAR tras actualizar el codigo SIN perder
+la pagina ni la sesion del navegador.
 
 Uso:
-    uv run main.py            # abre navegador con perfil y entra al modo interactivo
-    uv run main.py --headless # sin ventana visible (no recomendado para login)
+    1) En una terminal:   uv run navegador.py   (dejar abierta)
+    2) En otra terminal:  uv run qa.py
 
-Comandos del REPL (escribe 'ayuda' para verlos dentro de la sesion):
-    goto <ruta>           navega a una ruta relativa (ej: goto /gestion-predial/asignacion)
-    url                   muestra la URL y el titulo actuales
-    click <selector>      hace clic en el elemento (CSS o texto="...")
-    type <selector> | <texto>   escribe texto en un campo
-    press <selector> <Key>      presiona una tecla (ej: press input Enter)
-    enter <selector>      atajo de 'press <selector> Enter'
-    fill <selector> | <texto>   limpia y escribe en un campo
+Comandos del REPL (escribe 'ayuda' dentro de la sesion):
+    goto <ruta>           navega a una ruta relativa
+    url                   muestra URL y titulo actuales
+    click <selector>      clic en elemento (CSS o texto="...")
+    type/fill <sel> | <t> escribe en un campo
+    press <sel> <Key>     presiona una tecla
+    enter <sel>           ENTER en un campo
     wait <ms>             espera milisegundos
-    text <selector>       imprime el texto de un elemento
-    count <selector>      cuenta cuantos elementos coinciden
-    rows                  resume filas de la primera tabla visible
+    text/count/html <sel> inspeccionar elementos
+    rows                  resume filas de la tabla visible
 
   Flujo de radicados (modulo Asignacion):
-    asignacion            navega al modulo de Asignacion de Radicados
-    estado [Estado]       filtra por un estado (por defecto 'Asignado')
-    radicados             lista los radicados visibles ordenados (menor a mayor)
-    detalle <R-...>       abre 'Ver detalle' del radicado indicado
-    iniciar               pulsa 'Iniciar Tramite' (ACCION CRITICA, pide confirmacion)
+    asignacion            navega al modulo de Asignacion
+    estado [Estado]       filtra por estado (por defecto 'Asignado')
+    radicados             lista radicados visibles ordenados
+    detalle <R-...>       abre 'Ver detalle' del radicado
+    iniciar               pulsa 'Iniciar Tramite' (ACCION CRITICA)
 
   Wizard "Gestion de Tramites" (parte tecnica):
     agregarfoto           pulsa '+ Agregar foto' (opcional)
-    subirfoto <ruta>      carga un archivo de imagen (input file o dialogo)
-    continuar             pulsa 'Continuar' para avanzar de paso del wizard
+    subirfoto <ruta>      carga un archivo de imagen
+    continuar             pulsa 'Continuar' para avanzar de paso
 
-    cap [etiqueta]        guarda HTML + screenshot de la pantalla actual
-    html [selector]       imprime HTML (de la pagina o de un selector)
-    lote on|off           activa/desactiva confirmacion para acciones criticas
+    cap [etiqueta]        guarda HTML + screenshot
+    lote on|off           activa/desactiva confirmacion de acciones criticas
     ayuda                 muestra esta ayuda
-    salir                 cierra el navegador y termina
+    salir                 cierra el REPL (NO cierra el navegador)
 """
 
 from __future__ import annotations
@@ -59,68 +50,56 @@ from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
 BASE_DIR = Path(__file__).resolve().parent
-PROFILE_DIR = BASE_DIR / ".pw-profile"
 CAPTURAS_DIR = BASE_DIR / "capturas"
 
-# Palabras que marcan una accion como critica (requiere confirmacion).
 PALABRAS_CRITICAS = ("guardar", "confirmar", "submit", "enviar", "aprobar",
-                     "eliminar", "borrar", "crear", "asignar")
+                     "eliminar", "borrar", "crear", "asignar", "iniciar")
 
-# Estado de confirmacion para acciones criticas (True = pide confirmacion).
 _pedir_confirmacion = True
 
 
-def cargar_url() -> str:
+def cargar_config() -> dict:
     load_dotenv(BASE_DIR / ".env")
-    url = os.getenv("SMARTCUBE_URL", "").strip()
-    if not url:
-        print("ERROR: falta SMARTCUBE_URL en 05_codigo/.env")
-        sys.exit(1)
-    return url.rstrip("/")
+    url = os.getenv("SMARTCUBE_URL", "").strip().rstrip("/")
+    puerto = os.getenv("CDP_PORT", "9222").strip()
+    return {"url": url, "puerto": puerto}
 
 
 def localizar(page, selector: str):
-    """Devuelve un Locator. Soporta 'texto=...' para buscar por texto visible."""
     selector = selector.strip()
     if selector.startswith("texto="):
         return page.get_by_text(selector[len("texto="):].strip(), exact=False)
     return page.locator(selector)
 
 
-def es_critico(descripcion: str) -> bool:
-    desc = descripcion.lower()
-    return any(p in desc for p in PALABRAS_CRITICAS)
+def es_critico(desc: str) -> bool:
+    d = desc.lower()
+    return any(p in d for p in PALABRAS_CRITICAS)
 
 
-def confirmar(descripcion: str) -> bool:
-    """Pide confirmacion si la accion es critica y el modo lo exige."""
-    if not _pedir_confirmacion or not es_critico(descripcion):
+def confirmar(desc: str) -> bool:
+    if not _pedir_confirmacion or not es_critico(desc):
         return True
-    resp = input(f"  [CONFIRMAR] Accion critica -> {descripcion}. Escribe 'si' para continuar: ")
-    return resp.strip().lower() in ("si", "sí", "s", "yes", "y")
+    r = input(f"  [CONFIRMAR] Accion critica -> {desc}. Escribe 'si' para continuar: ")
+    return r.strip().lower() in ("si", "sí", "s", "yes", "y")
 
 
 def guardar_captura(page, etiqueta: str = "pantalla") -> None:
     CAPTURAS_DIR.mkdir(exist_ok=True)
     marca = datetime.now().strftime("%Y%m%d_%H%M%S")
     nombre = f"{marca}_{etiqueta}".replace("/", "_")
-    html_path = CAPTURAS_DIR / f"{nombre}.html"
-    png_path = CAPTURAS_DIR / f"{nombre}.png"
-    html_path.write_text(page.content(), encoding="utf-8")
-    page.screenshot(path=str(png_path), full_page=True)
-    print(f"  HTML       : {html_path.name}")
-    print(f"  Screenshot : {png_path.name}")
+    (CAPTURAS_DIR / f"{nombre}.html").write_text(page.content(), encoding="utf-8")
+    page.screenshot(path=str(CAPTURAS_DIR / f"{nombre}.png"), full_page=True)
+    print(f"  HTML       : {nombre}.html")
+    print(f"  Screenshot : {nombre}.png")
 
 
 def resumir_filas(page) -> None:
-    """Resume las filas de la primera tabla visible (util para listados)."""
     filas = page.locator("table tbody tr")
     total = filas.count()
     print(f"  Filas en tabla: {total}")
     for i in range(min(total, 30)):
-        texto = " | ".join(
-            c.strip() for c in filas.nth(i).inner_text().split("\t") if c.strip()
-        )
+        texto = " | ".join(c.strip() for c in filas.nth(i).inner_text().split("\t") if c.strip())
         print(f"   {i+1:>2}. {texto[:160]}")
 
 
@@ -133,29 +112,19 @@ def mostrar_estado(page) -> None:
 
 
 def ir_asignacion(page, base_url: str) -> None:
-    """Navega al modulo de Asignacion de Radicados."""
     page.goto(base_url + "/gestion-predial/asignacion", wait_until="networkidle")
     mostrar_estado(page)
 
 
 def filtrar_estado(page, estado: str = "Asignado") -> None:
-    """Abre el filtro de Estado y marca el checkbox del estado indicado.
-
-    No es accion critica (solo filtra la vista), por eso no pide confirmacion.
-    """
-    # Abrir el desplegable (boton que muestra 'Todos los estados').
     page.get_by_text("Todos los estados", exact=False).first.click()
     page.wait_for_timeout(400)
-    # Marcar el checkbox cuyo label coincide con el estado.
     etiqueta = page.locator("label", has_text=estado).first
     etiqueta.locator("input[type=checkbox]").check()
     page.wait_for_timeout(300)
-    # Cerrar el desplegable: clic en un punto neutro (titulo de la pagina).
-    # Escape no siempre cierra este dropdown, por eso clic fuera.
     try:
         page.get_by_role("heading", name="Asignación de Radicados").click()
     except Exception:
-        # Respaldo: clic en la esquina superior izquierda del contenido.
         page.mouse.click(5, 5)
     page.wait_for_timeout(300)
     page.wait_for_load_state("networkidle")
@@ -163,28 +132,19 @@ def filtrar_estado(page, estado: str = "Asignado") -> None:
 
 
 def listar_radicados(page) -> list[str]:
-    """Devuelve la lista de numeros de radicado visibles en la tabla, ordenados."""
     celdas = page.locator("table tbody tr td:nth-child(2)")
-    rads = []
-    for i in range(celdas.count()):
-        t = celdas.nth(i).inner_text().strip()
-        if t:
-            rads.append(t)
+    rads = [celdas.nth(i).inner_text().strip() for i in range(celdas.count())
+            if celdas.nth(i).inner_text().strip()]
     return sorted(rads)
 
 
 def abrir_detalle(page, radicado: str) -> bool:
-    """Abre el 'Ver detalle' (open_in_new) de la fila cuyo radicado coincide.
-
-    Devuelve True si lo encontro y abrio. Accion de solo lectura (no critica).
-    """
     filas = page.locator("table tbody tr")
     for i in range(filas.count()):
         fila = filas.nth(i)
         if radicado in fila.inner_text():
             boton = fila.locator('button[title="Ver detalle"], a[title="Ver detalle"]')
             if boton.count() == 0:
-                # Respaldo: cualquier elemento con el icono open_in_new en la fila.
                 boton = fila.get_by_text("open_in_new", exact=False)
             boton.first.click()
             page.wait_for_load_state("networkidle")
@@ -195,7 +155,6 @@ def abrir_detalle(page, radicado: str) -> bool:
 
 
 def iniciar_tramite(page) -> None:
-    """Pulsa el boton 'Iniciar Tramite'. ACCION CRITICA: pide confirmacion."""
     if not confirmar("Iniciar Tramite (cambia el estado del tramite)"):
         print("  Cancelado por el usuario.")
         return
@@ -208,10 +167,7 @@ def iniciar_tramite(page) -> None:
     mostrar_estado(page)
 
 
-# --- Wizard "Gestion de Tramites" (parte tecnica) ---
-
 def agregar_foto(page) -> None:
-    """Pulsa el boton '+ Agregar foto' (opcional) del paso actual del wizard."""
     boton = page.get_by_role("button", name="+ Agregar foto")
     if boton.count() == 0:
         boton = page.get_by_text("Agregar foto", exact=False)
@@ -221,11 +177,6 @@ def agregar_foto(page) -> None:
 
 
 def subir_foto(page, ruta: str) -> None:
-    """Carga un archivo de imagen en el input file del paso actual.
-
-    Busca un <input type=file>. Si el boton '+ Agregar foto' abre un dialogo
-    nativo, Playwright lo intercepta via file_chooser.
-    """
     ruta = ruta.strip().strip('"')
     archivo = Path(ruta)
     if not archivo.exists():
@@ -237,7 +188,6 @@ def subir_foto(page, ruta: str) -> None:
         page.wait_for_timeout(600)
         print(f"  Foto cargada en input file: {archivo.name}")
         return
-    # Si no hay input visible, intentar via file chooser al pulsar 'Agregar foto'.
     try:
         with page.expect_file_chooser() as fc_info:
             agregar_foto(page)
@@ -249,7 +199,6 @@ def subir_foto(page, ruta: str) -> None:
 
 
 def continuar_wizard(page) -> None:
-    """Pulsa el boton 'Continuar' del wizard para avanzar de paso."""
     boton = page.get_by_role("button", name="Continuar")
     if boton.count() == 0:
         boton = page.locator("button", has_text="Continuar")
@@ -260,21 +209,38 @@ def continuar_wizard(page) -> None:
     mostrar_estado(page)
 
 
+def conectar(cfg: dict):
+    """Conecta por CDP al navegador ya abierto por navegador.py."""
+    p = sync_playwright().start()
+    endpoint = f"http://localhost:{cfg['puerto']}"
+    try:
+        browser = p.chromium.connect_over_cdp(endpoint)
+    except Exception as e:
+        print(f"ERROR: no se pudo conectar al navegador en {endpoint}.")
+        print("Asegurate de haber lanzado antes 'uv run navegador.py'.")
+        print(f"Detalle: {type(e).__name__}: {e}")
+        p.stop()
+        sys.exit(1)
+    contexto = browser.contexts[0] if browser.contexts else browser.new_context()
+    page = contexto.pages[0] if contexto.pages else contexto.new_page()
+    return p, browser, page
+
+
 def repl(page, base_url: str) -> None:
     global _pedir_confirmacion
-    print("\n=== Sesion interactiva SmartCube QA ===")
-    print("Escribe 'ayuda' para ver comandos, 'salir' para terminar.")
+    print("\n=== REPL SmartCube QA (conectado por CDP) ===")
+    print("Escribe 'ayuda' para ver comandos, 'salir' para cerrar el REPL.")
+    print("(Salir NO cierra el navegador.)")
     mostrar_estado(page)
 
     while True:
         try:
             linea = input("\nqa> ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\nSaliendo...")
+            print("\nSaliendo del REPL (el navegador sigue abierto)...")
             break
         if not linea:
             continue
-
         partes = linea.split(" ", 1)
         cmd = partes[0].lower()
         arg = partes[1].strip() if len(partes) > 1 else ""
@@ -286,8 +252,8 @@ def repl(page, base_url: str) -> None:
                 print(__doc__)
             elif cmd == "lote":
                 _pedir_confirmacion = (arg.lower() != "on")
-                estado = "DESACTIVADA" if not _pedir_confirmacion else "ACTIVA"
-                print(f"  Confirmacion de acciones criticas: {estado}")
+                print(f"  Confirmacion de acciones criticas: "
+                      f"{'DESACTIVADA' if not _pedir_confirmacion else 'ACTIVA'}")
             elif cmd == "goto":
                 destino = base_url + "/" + arg.lstrip("/") if arg else base_url
                 page.goto(destino, wait_until="networkidle")
@@ -303,10 +269,7 @@ def repl(page, base_url: str) -> None:
                 sel, _, txt = arg.partition("|")
                 loc = localizar(page, sel.strip())
                 if confirmar(f"escribir en '{sel.strip()}'"):
-                    if cmd == "fill":
-                        loc.first.fill(txt.strip())
-                    else:
-                        loc.first.type(txt.strip())
+                    (loc.first.fill if cmd == "fill" else loc.first.type)(txt.strip())
                     print(f"  Escrito en {sel.strip()}: {txt.strip()!r}")
             elif cmd == "press":
                 sel, _, key = arg.rpartition(" ")
@@ -331,7 +294,7 @@ def repl(page, base_url: str) -> None:
                 filtrar_estado(page, arg or "Asignado")
             elif cmd == "radicados":
                 rads = listar_radicados(page)
-                print(f"  Radicados visibles ({len(rads)}), ordenados: {', '.join(rads)}")
+                print(f"  Radicados visibles ({len(rads)}): {', '.join(rads)}")
             elif cmd == "detalle":
                 if not arg:
                     print("  Uso: detalle <numero de radicado>")
@@ -351,10 +314,8 @@ def repl(page, base_url: str) -> None:
             elif cmd == "cap":
                 guardar_captura(page, arg or "pantalla")
             elif cmd == "html":
-                if arg:
-                    print(localizar(page, arg).first.inner_html()[:4000])
-                else:
-                    print(page.content()[:4000])
+                print((localizar(page, arg).first.inner_html()[:4000]) if arg
+                      else page.content()[:4000])
             else:
                 print(f"  Comando no reconocido: {cmd}. Escribe 'ayuda'.")
         except Exception as e:
@@ -363,28 +324,17 @@ def repl(page, base_url: str) -> None:
 
 
 def main() -> None:
-    headless = "--headless" in sys.argv
-    base_url = cargar_url()
-    PROFILE_DIR.mkdir(exist_ok=True)
-
-    with sync_playwright() as p:
-        contexto = p.chromium.launch_persistent_context(
-            user_data_dir=str(PROFILE_DIR),
-            headless=headless,
-            viewport={"width": 1600, "height": 900},
-        )
-        page = contexto.pages[0] if contexto.pages else contexto.new_page()
-        print(f"Abriendo: {base_url}")
-        page.goto(base_url, wait_until="networkidle")
-
-        if "login" in page.url.lower() or page.locator("input[type=password]").count() > 0:
-            print("\n--- Parece que hay que iniciar sesion ---")
-            print("Inicia sesion en la ventana del navegador y luego vuelve aqui.")
-            print("La sesion quedara guardada en el perfil para la proxima vez.")
-
-        repl(page, base_url)
-        contexto.close()
-        print("Navegador cerrado.")
+    cfg = cargar_config()
+    p, browser, page = conectar(cfg)
+    try:
+        repl(page, cfg["url"])
+    finally:
+        # NO cerramos el navegador: solo soltamos la conexion de Playwright.
+        try:
+            p.stop()
+        except Exception:
+            pass
+    print("REPL cerrado. El navegador sigue abierto.")
 
 
 if __name__ == "__main__":

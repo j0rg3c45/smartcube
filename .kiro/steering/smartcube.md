@@ -87,3 +87,13 @@ Ejecucion asistida y selectores:
   como ultimo recurso.
 - Tras cada bloque o fila completada, emitir reporte conciso con: campo/fila intervenida,
   datos ingresados, boton o accion ejecutada y estado/confirmacion visual del sistema.
+
+Modo de trabajo con el navegador (REGLA):
+- Cuando el usuario diga "comencemos" (o similar), el AGENTE debe DAR LOS COMANDOS
+  a ejecutar en la terminal del REPL (qa.py), uno por uno o en bloque claro.
+- El usuario ejecuta los comandos y pega la salida/captura; el agente guia el
+  siguiente paso. El agente no asume que el usuario adivina los comandos: siempre
+  los proporciona.
+- Arquitectura: `navegador.py` abre Chrome una vez (CDP, perfil persistente) y se
+  deja corriendo; `qa.py` es el REPL que se conecta a ese Chrome. Asi se puede
+  actualizar el codigo de comandos sin reiniciar el navegador.

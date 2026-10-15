@@ -1,7 +1,7 @@
 [project]
 name = "smartcube-qa"
 version = "0.1.0"
-description = "Add your description here"
+description = "SmartCube QA - automatizacion de pruebas de la plataforma catastral"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

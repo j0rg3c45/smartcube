@@ -304,20 +304,32 @@ en este proyecto. Mantener solo a título informativo.
 
 ---
 
-## 9. Herramienta de automatización (Playwright)
+## 9. Herramienta de automatización (Playwright, 2 scripts)
 
-Para interactuar con la plataforma (navegar, hacer clic, escribir, capturar) se usa
-un script de **sesión interactiva** con **Playwright** en `05_codigo/main.py`.
+Para interactuar con la plataforma se usa **Playwright** con una arquitectura de
+**dos scripts** en `05_codigo/`, de modo que el navegador se puede dejar abierto y
+el código de comandos se puede actualizar sin reiniciar el navegador:
 
-- Entorno gestionado con **uv** (dependencias: `playwright`, `python-dotenv`).
-- Navegador: Chromium de Playwright, con **perfil persistente** en `05_codigo/.pw-profile/`
-  (la sesión queda guardada tras el primer login manual; ignorado por Git).
+1. **`navegador.py`** — se lanza UNA vez (`uv run navegador.py`). Abre Chromium con
+   perfil persistente (`.pw-profile/`) y un puerto de depuración (CDP, por defecto
+   9222). Se deja corriendo; la sesión del login queda guardada.
+2. **`qa.py`** — el REPL (`uv run qa.py`). Se **conecta por CDP** al navegador ya
+   abierto. Si se actualiza el código, basta cerrar `qa.py` (Ctrl+C) y relanzarlo:
+   **el navegador y la página NO se reinician**.
+
+- Entorno gestionado con **uv** (deps: `playwright`, `python-dotenv`).
+- Puerto CDP configurable con `CDP_PORT` en `.env` (por defecto 9222).
 - Capturas (HTML + PNG) en `05_codigo/capturas/` (ignorado por Git).
-- Flujo: el usuario lanza `uv run main.py`, inicia sesión una vez, y queda un REPL
-  (`qa>`) donde se ejecutan comandos: `goto`, `click`, `type`, `fill`, `enter`,
-  `press`, `rows`, `cap`, `text`, `count`, `html`, `lote on|off`, `salir`.
+- **Comandos del REPL:** `goto`, `url`, `click`, `type`, `fill`, `press`, `enter`,
+  `wait`, `text`, `count`, `html`, `rows`, `asignacion`, `estado`, `radicados`,
+  `detalle`, `iniciar`, `agregarfoto`, `subirfoto`, `continuar`, `cap`,
+  `lote on|off`, `salir`.
 - **Modo conservador:** las acciones críticas (guardar, confirmar, enviar, aprobar,
-  eliminar, crear, asignar) piden confirmación antes de ejecutarse.
+  eliminar, crear, asignar, iniciar) piden confirmación antes de ejecutarse.
+- **Operación:** cuando el usuario dice "comencemos", el agente DA los comandos a
+  ejecutar; el usuario los corre y comparte la salida/captura.
+
+> `main.py` (versión monolítica anterior) quedó reemplazado por `navegador.py` + `qa.py`.
 
 ---
 
