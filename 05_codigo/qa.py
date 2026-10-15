@@ -26,6 +26,8 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
     estado [Estado]       filtra por estado (por defecto 'Asignado')
     radicados             lista radicados visibles ordenados
     detalle <R-...>       abre 'Ver detalle' del radicado
+    abrir <R-...>         AUTO: Asignacion -> filtrar Asignado -> abrir detalle
+    siguiente             AUTO: abre el radicado MENOR en estado Asignado
     iniciar               pulsa 'Iniciar Tramite' (ACCION CRITICA)
 
   Wizard "Gestion de Tramites" (parte tecnica):
@@ -209,6 +211,39 @@ def continuar_wizard(page) -> None:
     mostrar_estado(page)
 
 
+# --- Secuencias automaticas (varios pasos de una vez) ---
+
+def abrir_radicado(page, base_url: str, radicado: str) -> bool:
+    """Secuencia: ir a Asignacion -> filtrar Asignado -> abrir detalle del radicado.
+
+    No ejecuta acciones criticas (solo navega, filtra y abre lectura).
+    """
+    print(f"  [1/3] Navegando a Asignacion...")
+    ir_asignacion(page, base_url)
+    print(f"  [2/3] Filtrando por estado Asignado...")
+    filtrar_estado(page, "Asignado")
+    print(f"  [3/3] Abriendo detalle de {radicado}...")
+    return abrir_detalle(page, radicado)
+
+
+def siguiente_radicado(page, base_url: str) -> str | None:
+    """Abre automaticamente el radicado MENOR en estado Asignado.
+
+    Devuelve el radicado abierto, o None si no hay radicados.
+    Util para procesar en orden sin escribir el numero cada vez.
+    """
+    ir_asignacion(page, base_url)
+    filtrar_estado(page, "Asignado")
+    rads = listar_radicados(page)
+    if not rads:
+        print("  No hay radicados en estado Asignado.")
+        return None
+    menor = rads[0]
+    print(f"  Radicado menor en Asignado: {menor} (de {len(rads)})")
+    abrir_detalle(page, menor)
+    return menor
+
+
 def conectar(cfg: dict):
     """Conecta por CDP al navegador ya abierto por navegador.py."""
     p = sync_playwright().start()
@@ -300,6 +335,13 @@ def repl(page, base_url: str) -> None:
                     print("  Uso: detalle <numero de radicado>")
                 else:
                     abrir_detalle(page, arg)
+            elif cmd == "abrir":
+                if not arg:
+                    print("  Uso: abrir <numero de radicado>")
+                else:
+                    abrir_radicado(page, base_url, arg)
+            elif cmd == "siguiente":
+                siguiente_radicado(page, base_url)
             elif cmd == "iniciar":
                 iniciar_tramite(page)
             elif cmd == "agregarfoto":
