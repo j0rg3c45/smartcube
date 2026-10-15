@@ -246,8 +246,18 @@ Encabezado: tipo de trámite (p. ej. "Mutación Integral"), radicado, predio/NPN
 7. RESUMEN
 8. BORRADOR RESOLUCION
 
-Navegación del wizard: **"Continuar"** (flecha `arrow_forward`) avanza al siguiente
-paso; "Cancelar Trámite" aborta.
+Navegación del wizard: el botón de avanzar **cambia de nombre en cada paso**:
+"Continuar" (paso 1), "Siguiente Paso" (paso 2), "Continuar a Construcciones"
+(paso 3), etc. "Anterior" retrocede; "Cancelar Trámite" aborta.
+
+Detalle por paso observado:
+- **Paso 2 (Propietario):** solo lectura ("solo lectura para esta mutación"). Lista
+  propietarios con documento, tipo interesado, sexo, tipo derecho y % participación.
+- **Paso 3 (Configuración del Terreno):** geometría (conservar/re-subir shape .zip),
+  área (m²), zonas físicas y geoeconómicas (ZHG, ZHF, área gráfica/digitada, %,
+  área ha, valor m², avalúo). Valida la diferencia entre área digitada y área
+  geométrica contra una tolerancia (p. ej. 10% rural); marca en rojo si se supera.
+  Botones: "Buscar shape del plugin", "Subir shape", "Ver en mapa", "Agregar zona".
 
 > NPN verificado en R-2026-0077: `763640001000000013201000000000` tiene 30 dígitos
 > y los campos de pantalla reconstruyen exactamente el NPN. Estructura correcta.
@@ -302,6 +312,8 @@ en este proyecto. Mantener solo a título informativo.
 |---|----------|-----------------|---------------------------|------------------|
 | 1 | (varios) | Asignación / contador | El "Total Radicados" cambió de 17 a 16 y "Validación Completa" de 4 a 3 entre dos cargas de la misma pantalla, sin acción aparente que lo justifique. Verificar causa. | Capturas 20261014 (17) vs 20261015_161315 (16). Por confirmar. |
 | 2 | R-2026-0077 | Trámite / estado | Tras pulsar "Iniciar Trámite" (que llevó al wizard "En proceso"), el radicado sigue listado en estado "Asignado" en Asignación. Revisar si el estado debería cambiar. | Captura 20261015_161315. Por confirmar con el usuario. |
+
+| 3 | R-2026-0077 | Trámite / Paso 3 Terreno / Área | El área digitada (3.050,00 m²) difiere 17,8% del área geométrica del polígono (3.709,12 m²), SUPERANDO el 10% de tolerancia permitida (rural, rango <=10.000 m²). La plataforma lo marca en rojo. Falta verificar si permite avanzar pese a estar fuera de tolerancia. | Captura 20261015_161838_revision_actual. Regla de negocio/topológica. |
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
