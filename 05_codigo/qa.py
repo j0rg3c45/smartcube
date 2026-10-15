@@ -212,13 +212,26 @@ def subir_foto(page, ruta: str) -> None:
 
 
 def continuar_wizard(page) -> None:
-    boton = page.get_by_role("button", name="Continuar")
+    """Pulsa el boton de avanzar del wizard. El nombre cambia entre pasos:
+    'Continuar' (paso 1) o 'Siguiente Paso' (pasos siguientes)."""
+    boton = None
+    for nombre in ("Siguiente Paso", "Continuar"):
+        cand = page.get_by_role("button", name=nombre)
+        if cand.count() > 0:
+            boton = cand
+            break
+    if boton is None:
+        # Respaldo: boton que contenga alguno de los textos.
+        boton = page.locator("button", has_text="Siguiente")
+        if boton.count() == 0:
+            boton = page.locator("button", has_text="Continuar")
     if boton.count() == 0:
-        boton = page.locator("button", has_text="Continuar")
+        print("  No se encontro el boton de avanzar (Continuar / Siguiente Paso).")
+        return
     boton.first.click()
     page.wait_for_load_state("networkidle")
     page.wait_for_timeout(400)
-    print("  'Continuar' pulsado.")
+    print("  Boton de avanzar pulsado.")
     mostrar_estado(page)
 
 
