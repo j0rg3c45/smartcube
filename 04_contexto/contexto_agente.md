@@ -336,6 +336,11 @@ en este proyecto. Mantener solo a título informativo.
 > OBSERVACION: el shape subido en el Paso 3 corrigió el área (a 3.672,97 m², 100%) pero
 > introdujo un traslape de 7.82 m² con el predio vecino. Para resolver: subir el vecino
 > como colindante con geometria corregida o ajustar la geometria del tramite.
+>
+> RESUELTO (15/10/2026, re-validacion 5:39 p.m.): tras corregir la geometria, la
+> validacion quedo en 0 Errores, 0 Warnings, 44 OK. El boton "Pasar borrador acto
+> administrativo" se habilito. Confirma que la validacion topologica funciona de punta
+> a punta (bloquea con error, libera al corregir).
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
