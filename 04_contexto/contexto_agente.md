@@ -170,11 +170,14 @@ Apoyo al proceso de QA:
   - Columnas de la tabla: `[expandir] | Radicado | Fecha | Solicitante | Estado |
     Trámites | Validación | Acciones`.
   - **Criterio de revisión: la columna `Estado`.** Los radicados se revisan/filtran
-    por su estado. Valores observados:
-    - `Asignado` (badge azul)
-    - `Completado` (badge verde)
+    por su estado. El filtro de Estado es de selección múltiple (checkboxes) con buscador.
+  - **Estados del flujo (ciclo de vida del radicado):** `Asignado`, `Digitado`,
+    `Devuelto`, `Completado`, `Correspondencia`, `Notificado`, `Desistido`,
+    `Calidad`, `Gerencia`, `Pendiente por asignar`.
   - No confundir `Estado` con la columna `Validación` (valores: `Completa` o
     `Pendiente: Técnica, Jurídica`).
+  - La acción "Ver detalle" (ícono `open_in_new`) NO cambia la URL: abre un modal
+    sobre la tabla.
 
 ---
 
