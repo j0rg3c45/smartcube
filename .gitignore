@@ -10,6 +10,12 @@ __pycache__/
 venv/
 *.egg-info/
 
+# Playwright: perfil persistente (contiene la sesion/cookies) y capturas
+05_codigo/.pw-profile/
+05_codigo/capturas/
+.pw-profile/
+capturas/
+
 # Datos sensibles / pesados
 03_tramites/
 
