@@ -267,6 +267,9 @@ Detalle por paso observado:
     desde los documentos del trámite en `03_tramites/NN_tramite_<radicado>/`).
 - **Paso 4 (Construcciones):** "Unidades de Construcción" (0 si no hay). Muestra la
   cartografía "Terreno + Construcciones". Botón de avanzar: **"Siguiente: Resumen Final"**.
+  - **REGLA:** en este paso el agente SIEMPRE debe preguntar al usuario si el predio
+    tiene construcciones. Si tiene, se registran las unidades antes de continuar; si
+    no tiene, se continua directo.
 
 > NPN verificado en R-2026-0077: `763640001000000013201000000000` tiene 30 dígitos
 > y los campos de pantalla reconstruyen exactamente el NPN. Estructura correcta.
