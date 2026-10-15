@@ -327,7 +327,7 @@ en este proyecto. Mantener solo a título informativo.
 
 | 3 | R-2026-0077 | Trámite / Paso 3 Terreno / Área | DESCARTADO como bug: el área inicial (3.050 m²) estaba fuera de la tolerancia del 10% (17,8% del polígono) y la plataforma lo marcó en rojo. Tras subir el shape correcto, el % pasó a 100% y la alerta desapareció. La validación de tolerancia FUNCIONA (comportamiento esperado, no inconsistencia). | Capturas 20261015_161838 (rojo) y 20261015_163336 (corregido). |
 
-| 4 | R-2026-0077 | Trámite / Paso 3 / Puntos y Linderos | No se pueden COPIAR los NPN de los predios colindantes por ningún lado: el usuario tuvo que digitar manualmente cada NPN del colindante en el campo "NPN o nombre del colindante". No hay forma de copiar el NPN desde el mapa ni desde otra vista. Afecta la usabilidad y es propenso a errores de digitación. | Capturas 20261015_164646 / 20261015_164851. Confirmado por el usuario. |
+| 4 | R-2026-0077 | Trámite / Paso 3 / Puntos y Linderos | No se pueden COPIAR los NPN de los predios colindantes por ningún lado: el usuario tuvo que digitar manualmente cada NPN del colindante en el campo "NPN o nombre del colindante". No hay forma de copiar el NPN desde el mapa ni desde otra vista. Afecta la usabilidad y es propenso a errores de digitación. Redacción técnica en sección 8.1. | Capturas 20261015_164646 / 20261015_164851. Confirmado por el usuario. |
 
 | 5 | R-2026-0077 | Paso 2/7 Propietario / % Participación | El único propietario (SANDRA MONICA VILLANUEVA QUINTANA) con tipo de derecho "Dominio" figura con % de participación = 0% (en el resumen aparece como "000031534120 (0E-10)", es decir 0). Lo esperado para un único propietario con dominio es 100%. | Capturas paso2 y paso7_resumen. Por confirmar con usuario si es dato de origen o cálculo de la plataforma. |
 | 6 | R-2026-0077 | Paso 7 Resumen / Fuente administrativa | DESCARTADO: era un falso positivo (el HTML estaba a medio cargar). Con el resumen cargado, los datos se muestran bien. No es inconsistencia. | HTML intermedio sin terminar de cargar. |
@@ -367,6 +367,23 @@ Públicos.
 **Recomendación:** implementar validación de longitud fija (30 dígitos) y de
 estructura del NPN tanto en la interfaz de usuario (bloqueo/alerta al digitar) como en
 la capa de negocio (rechazo en el guardado), antes de permitir avanzar el trámite.
+
+#### Funcionalidad de copiado y reutilización del NPN en el módulo de colindantes y linderos
+
+**Hallazgo / Diagnóstico actual:**
+
+Durante el diligenciamiento y edición de la información de linderos y colindancias de
+un predio, la interfaz no ofrece un mecanismo nativo o accesible para copiar el Número
+Predial Nacional (NPN) directamente desde el módulo. Esta limitación obliga al operador
+a digitar manualmente el código de 30 caracteres o a cambiar repetidamente de pantalla
+o ventana para copiarlo y pegarlo, lo que ralentiza el flujo de trabajo, genera fatiga
+en la digitación y eleva la probabilidad de errores tipográficos en las relaciones de
+colindancia.
+
+**Recomendación:** habilitar un botón de "copiar NPN" funcional en el listado de
+predios/colindantes y permitir seleccionar el NPN de un predio vecino desde el mapa o
+desde un buscador integrado, de modo que se autocomplete el campo "NPN o nombre del
+colindante" sin digitación manual.
 
 ---
 
