@@ -265,6 +265,8 @@ Detalle por paso observado:
     Botones de linderos: "Empezar aquí", "Invertir", "Regenerar", "Guardar".
   - Estos datos de linderos los diligencia el usuario (datos técnicos reales,
     desde los documentos del trámite en `03_tramites/NN_tramite_<radicado>/`).
+- **Paso 4 (Construcciones):** "Unidades de Construcción" (0 si no hay). Muestra la
+  cartografía "Terreno + Construcciones". Botón de avanzar: **"Siguiente: Resumen Final"**.
 
 > NPN verificado en R-2026-0077: `763640001000000013201000000000` tiene 30 dígitos
 > y los campos de pantalla reconstruyen exactamente el NPN. Estructura correcta.
@@ -352,6 +354,18 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
   ejecutar; el usuario los corre y comparte la salida/captura.
 
 > `main.py` (versión monolítica anterior) quedó reemplazado por `navegador.py` + `qa.py`.
+
+---
+
+#### Tipos de trámite observados
+
+- **Efectos Registrales - Actualización Linderos Artículo 6.1** (R-2026-0077,
+  "Mutación Integral"). Es el tipo de trámite que se está procesando en las pruebas.
+- Mutación 2a Clase - Segregación (R-2026-0089, Trámite #95).
+
+> El tipo "Efectos Registrales" se trabaja con el wizard de 8 pasos de Gestión de
+> Trámites (predio, propietario, terreno/linderos, construcciones, fuente
+> administrativa, avalúo, resumen, borrador de resolución).
 
 ---
 
