@@ -462,14 +462,21 @@ Arquitectura de trabajo activa:
 - Comandos: asignacion, estado, radicados, abrir, siguiente, detalle, iniciar,
   agregarfoto, subirfoto, continuar, cap, click, type, fill, etc.
 
-Para retomar:
-1. Lanzar `uv run navegador.py` y `uv run qa.py` (dos terminales).
-2. Procesar el siguiente radicado en Asignado (el menor ahora es R-2026-0079).
+**CIERRE sesión 15/10/2026.** Trabajo guardado y repo sincronizado.
 
-Progreso meta: **1 de 50 radicados completos.** Hallazgos reales por confirmar:
-#4 (NPN de colindantes no se pueden copiar) y #5 (propietario único con Dominio al
-0% de participación). Validaciones que SÍ funcionan: tolerancia de área (#3) y
-traslape topológico (#7).
+Para retomar la próxima vez:
+1. Lanzar `uv run navegador.py` y `uv run qa.py` (dos terminales).
+2. Procesar el siguiente radicado en Asignado: el menor es **R-2026-0079** (EMPRESA46).
+   Usar el mismo flujo de 8 pasos (comando `abrir R-2026-0079` o `siguiente`).
+
+Progreso meta: **1 de 50 radicados completos.**
+
+Hallazgos para el informe final (ver secciones 8 y 8.1):
+- #4 — NPN de colindantes no se pueden copiar (redacción técnica lista en 8.1).
+- #5 — Propietario único con Dominio al 0% de participación (por confirmar).
+- #8 — Falta validación de longitud del NPN (30 dígitos) (redacción técnica lista en 8.1).
+- Validaciones que SÍ funcionan (no son bugs): tolerancia de área (#3), traslape
+  topológico (#7). Hallazgos #1, #2, #6 aclarados/descartados.
 
 ---
 
