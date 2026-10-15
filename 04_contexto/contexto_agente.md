@@ -258,6 +258,13 @@ Detalle por paso observado:
   área ha, valor m², avalúo). Valida la diferencia entre área digitada y área
   geométrica contra una tolerancia (p. ej. 10% rural); marca en rojo si se supera.
   Botones: "Buscar shape del plugin", "Subir shape", "Ver en mapa", "Agregar zona".
+  - Tras subir un shape nuevo, se genera **Puntos y Linderos** (vista previa del
+    polígono en mapa). Hay que **describir cada lindero** (Orientación, Colinda con,
+    NPN/nombre del colindante) y pulsar **"Guardar"**. El botón "Continuar a
+    Construcciones" queda DESHABILITADO hasta describir y guardar los linderos.
+    Botones de linderos: "Empezar aquí", "Invertir", "Regenerar", "Guardar".
+  - Estos datos de linderos los diligencia el usuario (datos técnicos reales,
+    desde los documentos del trámite en `03_tramites/NN_tramite_<radicado>/`).
 
 > NPN verificado en R-2026-0077: `763640001000000013201000000000` tiene 30 dígitos
 > y los campos de pantalla reconstruyen exactamente el NPN. Estructura correcta.
@@ -313,7 +320,7 @@ en este proyecto. Mantener solo a título informativo.
 | 1 | (varios) | Asignación / contador | El "Total Radicados" cambió de 17 a 16 y "Validación Completa" de 4 a 3 entre dos cargas de la misma pantalla, sin acción aparente que lo justifique. Verificar causa. | Capturas 20261014 (17) vs 20261015_161315 (16). Por confirmar. |
 | 2 | R-2026-0077 | Trámite / estado | Tras pulsar "Iniciar Trámite" (que llevó al wizard "En proceso"), el radicado sigue listado en estado "Asignado" en Asignación. Revisar si el estado debería cambiar. | Captura 20261015_161315. Por confirmar con el usuario. |
 
-| 3 | R-2026-0077 | Trámite / Paso 3 Terreno / Área | El área digitada (3.050,00 m²) difiere 17,8% del área geométrica del polígono (3.709,12 m²), SUPERANDO el 10% de tolerancia permitida (rural, rango <=10.000 m²). La plataforma lo marca en rojo. Falta verificar si permite avanzar pese a estar fuera de tolerancia. | Captura 20261015_161838_revision_actual. Regla de negocio/topológica. |
+| 3 | R-2026-0077 | Trámite / Paso 3 Terreno / Área | DESCARTADO como bug: el área inicial (3.050 m²) estaba fuera de la tolerancia del 10% (17,8% del polígono) y la plataforma lo marcó en rojo. Tras subir el shape correcto, el % pasó a 100% y la alerta desapareció. La validación de tolerancia FUNCIONA (comportamiento esperado, no inconsistencia). | Capturas 20261015_161838 (rojo) y 20261015_163336 (corregido). |
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
