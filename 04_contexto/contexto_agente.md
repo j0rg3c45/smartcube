@@ -270,11 +270,45 @@ un script de **sesión interactiva** con **Playwright** en `05_codigo/main.py`.
 
 ---
 
-## 10. Notas y pendientes
+## 10. Estado de la sesión (dónde vamos)
+
+**Última sesión: 14/10/2026.**
+
+Avance:
+- Repositorio Git inicializado y sincronizado con GitHub (último commit publicado).
+- Entorno de automatización listo: `05_codigo/main.py` (Playwright + REPL `qa>`),
+  perfil persistente con la sesión ya iniciada (login guardado, estable).
+- Módulo en revisión: **Asignación de Radicados** (`/gestion-predial/asignacion`).
+  - Página 1 mapeada (10 radicados) en `05_codigo/radicados_asignacion.csv`.
+    Total: 17 radicados en 2 páginas (falta mapear la página 2).
+  - Documentados los 10 estados del flujo y el flujo del trámite.
+- Se abrió el **Detalle del Radicado R-2026-0089** y se capturó
+  (`capturas/20261014_220443_detalle_0089.png`).
+  - Trámite #95 — "Mutación 2a Clase - Segregación" — ASIGNADO.
+  - NPN del predio: `763640100000001390001000000000`.
+  - Validación Técnica y Jurídica: ambas "Aprobado".
+
+Próximos pasos (retomar aquí):
+1. **Validar el NPN** `763640100000001390001000000000` del Trámite #95 contra la
+   estructura oficial de 30 dígitos (punto de QA pendiente).
+2. Ejecutar **"Iniciar Trámite"** en R-2026-0089 para mapear en vivo los pasos del
+   flujo (validación técnica → confirmación usuario → validación jurídica).
+   OJO: es acción que cambia estado → el REPL pedirá confirmación (modo conservador).
+3. Mapear la **página 2** de radicados (quedan 7 de 17).
+4. Revisar hueco de secuencia: salto de R-2026-0081 a R-2026-0079 (¿falta 0080?).
+5. Ir registrando inconsistencias en la tabla de la sección 8.
+
+Sesión abierta: para reanudar, lanzar `uv run main.py` en `05_codigo` (la sesión
+sigue guardada en el perfil).
+
+---
+
+## 11. Notas y pendientes
 
 <!-- Espacio para ir anotando decisiones, dudas y tareas abiertas -->
 - Definir el flujo de trabajo de un trámite catastral de principio a fin.
 - Especificar el sistema de referencia de coordenadas (SRC/CRS) utilizado.
+- Confirmar el detalle de los pasos de confirmación del usuario en el flujo del trámite.
 
 ---
 
