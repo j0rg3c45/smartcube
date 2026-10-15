@@ -235,7 +235,9 @@ Encabezado: tipo de trámite (p. ej. "Mutación Integral"), radicado, predio/NPN
 **Pasos:**
 1. **PREDIO** — "Datos del Predio": descompone el NPN en campos (DEPTO, MUN, ZONA,
    SECTOR, COMUNA, BARRIO, MZ/VEREDA, TERRENO, COND, EDIF, PISO, UNID). Botón
-   "Copiar NPN". Incluye **"+ Agregar foto"** (opcional) para cargar fotos.
+   "Copiar NPN". Incluye **"+ Agregar foto"** (opcional). Las fotos las carga el
+   usuario **manualmente** en el navegador (archivos en
+   `03_tramites/NN_tramite_<radicado>/`).
 2. PROPIETARIO
 3. TERRENO
 4. CONSTRUCCION
