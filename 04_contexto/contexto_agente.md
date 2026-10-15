@@ -223,8 +223,10 @@ Flujo que se repite para CADA radicado en estado "Asignado":
 - **Oficio de Notificación:** indica si se requiere notificar al solicitante según
   haya rechazos.
 
-> Pendiente mapear en vivo qué pantallas abre "Iniciar Trámite" (pasos de la parte
-> técnica).
+- Al pulsar **"Iniciar Trámite"**, la plataforma navega a **`/gestion-tramites`**,
+  la pantalla de trabajo de la parte técnica del analista.
+
+> Pendiente mapear los pasos dentro de `/gestion-tramites` (parte técnica).
 
 ---
 
