@@ -40,6 +40,12 @@ están detallados en `04_contexto/contexto_agente.md` (sección 4).
 - `04_contexto/` — Documentación de contexto del agente.
 - `05_codigo/` — **Todos los scripts y archivos `.py`** del proyecto se guardan aqui (Python / PyQGIS).
 
+## Git (REGLA)
+- Despues de CADA cambio que se implemente, actualizar el repositorio: `git add` de los
+  archivos tocados, `commit` con mensaje claro en espanol y `push` a `origin main`.
+- Verificar siempre antes del commit que no se suban archivos sensibles o ignorados
+  (`.env`, `.pw-profile/`, `capturas/`, `.venv/`, `03_tramites/`).
+
 ## Manejo de scripts (REGLA)
 - Todo script o archivo `.py` que se cree va en `05_codigo/`.
 - Los **scripts temporales** (de un solo uso o auxiliares) se deben **BORRAR al terminar su funcion**.
