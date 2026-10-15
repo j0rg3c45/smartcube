@@ -398,6 +398,11 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
 
 #### Flujo técnico completo del analista (VALIDADO de punta a punta)
 
+> **IMPORTANTE: este flujo es el MISMO para todos los trámites.** El primero
+> completado fue de tipo "Efectos Registrales - Actualización Linderos Art. 6.1"
+> (R-2026-0077), pero el resto de radicados se procesan con estos mismos pasos.
+> Es el procedimiento de referencia para cada uno de los 50.
+
 1. Asignación -> filtrar estado "Asignado" -> abrir detalle del radicado menor.
 2. "Iniciar Trámite" -> navega al wizard `/gestion-tramites`.
 3. **Wizard de 8 pasos:** Predio (foto) -> Propietario (lectura) -> Terreno

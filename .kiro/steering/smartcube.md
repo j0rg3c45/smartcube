@@ -88,6 +88,18 @@ Ejecucion asistida y selectores:
 - Tras cada bloque o fila completada, emitir reporte conciso con: campo/fila intervenida,
   datos ingresados, boton o accion ejecutada y estado/confirmacion visual del sistema.
 
+Flujo tecnico de un tramite (REGLA - MISMO para todos):
+- Ya se completo un tramite de punta a punta (Efectos Registrales, R-2026-0077). TODOS
+  los demas tramites siguen el MISMO flujo:
+  1. Asignacion -> filtrar estado "Asignado" -> abrir detalle del radicado menor.
+  2. "Iniciar Tramite" -> wizard `/gestion-tramites`.
+  3. Wizard de 8 pasos: Predio (foto) -> Propietario (lectura) -> Terreno (shape +
+     linderos + Guardar) -> Construcciones (PREGUNTAR si tiene) -> Fuente Administrativa
+     (formulario) -> Avaluo (calcular retroactivo) -> Resumen (0 errores) -> Borrador
+     Resolucion (editor + PDF).
+  4. "Pasar a calidad" -> el radicado sale de Asignacion.
+- El detalle completo esta en `04_contexto/contexto_agente.md` (seccion 10).
+
 Modo de trabajo con el navegador (REGLA):
 - Cuando el usuario diga "comencemos" (o similar), el AGENTE debe DAR LOS COMANDOS
   a ejecutar en la terminal del REPL (qa.py), uno por uno o en bloque claro.
