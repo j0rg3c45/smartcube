@@ -1,0 +1,18 @@
+# Entorno y credenciales
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Datos sensibles / pesados
+03_tramites/
+
+# Sistema
+.DS_Store
+Thumbs.db
