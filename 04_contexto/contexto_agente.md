@@ -384,7 +384,35 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
 
 ## 10. Estado de la sesión (dónde vamos)
 
-**Última sesión: 14/10/2026.**
+**Sesión 15/10/2026 — pausada en el Paso 7 de R-2026-0077.**
+
+Dónde quedamos:
+- Procesando R-2026-0077 (Efectos Registrales - Actualización Linderos Art. 6.1) con
+  el wizard de 8 pasos. Completados pasos 1-6; en el **Paso 7 (Resumen)** la validación
+  final arrojó **2 errores de traslape** que BLOQUEAN pasar al borrador (hallazgo #7).
+- El traslape (7.82 m²) lo introdujo el shape subido en el Paso 3. Para resolver:
+  subir el predio vecino (NPN 76364...10020) como colindante con geometría corregida,
+  o ajustar la geometría del trámite.
+- **El usuario está consultando cómo ajustar/resolver estos errores de geometría.**
+  Trámite R-2026-0077 queda PAUSADO en el Paso 7 (no se pasó a borrador).
+
+Arquitectura de trabajo activa:
+- `navegador.py` (abre Chrome CDP, perfil persistente) + `qa.py` (REPL de comandos).
+- Comandos disponibles incluyen: asignacion, estado, radicados, abrir, siguiente,
+  detalle, iniciar, agregarfoto, subirfoto, continuar, cap, etc.
+
+Para retomar:
+1. Lanzar `uv run navegador.py` y `uv run qa.py` (dos terminales).
+2. Resolver el traslape de R-2026-0077 (según lo que confirme el usuario), o
+3. Pasar al siguiente radicado en estado Asignado (comando `siguiente`).
+
+Progreso meta: 1 radicado en proceso de 50. Hallazgos registrados: ver sección 8
+(destacan #4 NPN no copiables y #5 propietario con 0% de participación como
+inconsistencias reales por confirmar).
+
+---
+
+### Historial anterior (14/10/2026)
 
 Avance:
 - Repositorio Git inicializado y sincronizado con GitHub (último commit publicado).
@@ -424,4 +452,4 @@ sigue guardada en el perfil).
 
 ---
 
-_Última actualización: 14/10/2026_
+_Última actualización: 15/10/2026_
