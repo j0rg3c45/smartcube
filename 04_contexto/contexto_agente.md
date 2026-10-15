@@ -300,7 +300,10 @@ en este proyecto. Mantener solo a título informativo.
 
 | # | Radicado | Campo / Sección | Inconsistencia encontrada | Evidencia / Nota |
 |---|----------|-----------------|---------------------------|------------------|
-|   |          |                 |                           |                  |
+| 1 | (varios) | Asignación / contador | El "Total Radicados" cambió de 17 a 16 y "Validación Completa" de 4 a 3 entre dos cargas de la misma pantalla, sin acción aparente que lo justifique. Verificar causa. | Capturas 20261014 (17) vs 20261015_161315 (16). Por confirmar. |
+| 2 | R-2026-0077 | Trámite / estado | Tras pulsar "Iniciar Trámite" (que llevó al wizard "En proceso"), el radicado sigue listado en estado "Asignado" en Asignación. Revisar si el estado debería cambiar. | Captura 20261015_161315. Por confirmar con el usuario. |
+
+> Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
 ---
 

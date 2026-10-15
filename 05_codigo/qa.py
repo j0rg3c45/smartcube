@@ -141,18 +141,29 @@ def listar_radicados(page) -> list[str]:
 
 
 def abrir_detalle(page, radicado: str) -> bool:
-    filas = page.locator("table tbody tr")
-    for i in range(filas.count()):
-        fila = filas.nth(i)
-        if radicado in fila.inner_text():
-            boton = fila.locator('button[title="Ver detalle"], a[title="Ver detalle"]')
-            if boton.count() == 0:
-                boton = fila.get_by_text("open_in_new", exact=False)
-            boton.first.click()
-            page.wait_for_load_state("networkidle")
-            mostrar_estado(page)
-            return True
+    # Esperar a que la tabla cargue/recargue antes de buscar (evita falsos
+    # "no encontrado" por timing tras aplicar un filtro).
+    try:
+        page.wait_for_selector("table tbody tr", timeout=5000)
+    except Exception:
+        pass
+    page.wait_for_timeout(500)
+    # Buscar la fila cuyo radicado coincide (hasta 2 reintentos por si recarga).
+    for intento in range(3):
+        filas = page.locator("table tbody tr")
+        for i in range(filas.count()):
+            fila = filas.nth(i)
+            if radicado in fila.inner_text():
+                boton = fila.locator('button[title="Ver detalle"], a[title="Ver detalle"]')
+                if boton.count() == 0:
+                    boton = fila.get_by_text("open_in_new", exact=False)
+                boton.first.click()
+                page.wait_for_load_state("networkidle")
+                mostrar_estado(page)
+                return True
+        page.wait_for_timeout(700)
     print(f"  No se encontro el radicado {radicado} en la tabla visible.")
+    print("  Sugerencia: usa 'radicados' para ver los visibles, o puede estar en la pagina 2.")
     return False
 
 
