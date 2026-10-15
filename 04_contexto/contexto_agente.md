@@ -208,15 +208,23 @@ Flujo que se repite para CADA radicado en estado "Asignado":
 
 #### Flujo de un trámite (validaciones)
 
-Dentro de un trámite ya iniciado, la secuencia observada es:
+- **"Iniciar Trámite"** arranca la **parte técnica** del trámite, que es la que le
+  corresponde al analista (rol del usuario: `user-analista`). Es una ACCIÓN CRÍTICA:
+  cambia el estado del trámite. El REPL pide confirmación antes de ejecutarla.
+- Secuencia observada del trámite: Iniciar Trámite → Validación Técnica →
+  confirmación del usuario → Validación Jurídica.
 
-1. **Iniciar Trámite** (botón `play_arrow`).
-2. **Validación Técnica** (primera validación).
-3. **Confirmación del usuario**.
-4. **Validación Jurídica** (segunda validación).
+**Elementos del Detalle del Radicado (ampliado, visto en R-2026-0077):**
+- **Trámites:** nº de trámite, tipo, analista, estado, NPN del predio, botón
+  "Iniciar Trámite", "Cargadores invitados" (botón "Invitar cargador").
+- **Historial del Trámite:** eventos con usuario y marca de tiempo (Crear trámite,
+  Asignar analista, Validar técnica, etc.).
+- **Historial de Validaciones** (Técnica / Jurídica con estado y nota).
+- **Oficio de Notificación:** indica si se requiere notificar al solicitante según
+  haya rechazos.
 
-> Pendiente de confirmar el detalle exacto de los pasos 2-4 (dónde confirma el
-> usuario y qué botón usa en cada etapa). Se mapeará en vivo al iniciar un trámite.
+> Pendiente mapear en vivo qué pantallas abre "Iniciar Trámite" (pasos de la parte
+> técnica).
 
 ---
 
