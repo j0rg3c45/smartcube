@@ -226,7 +226,29 @@ Flujo que se repite para CADA radicado en estado "Asignado":
 - Al pulsar **"Iniciar Trámite"**, la plataforma navega a **`/gestion-tramites`**,
   la pantalla de trabajo de la parte técnica del analista.
 
-> Pendiente mapear los pasos dentro de `/gestion-tramites` (parte técnica).
+#### Wizard "Gestión de Trámites" (`/gestion-tramites`)
+
+Asistente de 8 pasos para consolidar la información predial antes de la radicación.
+Encabezado: tipo de trámite (p. ej. "Mutación Integral"), radicado, predio/NPN y
+"Estado Global" (p. ej. "En proceso"). Botones: "Volver al listado".
+
+**Pasos:**
+1. **PREDIO** — "Datos del Predio": descompone el NPN en campos (DEPTO, MUN, ZONA,
+   SECTOR, COMUNA, BARRIO, MZ/VEREDA, TERRENO, COND, EDIF, PISO, UNID). Botón
+   "Copiar NPN". Incluye **"+ Agregar foto"** (opcional) para cargar fotos.
+2. PROPIETARIO
+3. TERRENO
+4. CONSTRUCCION
+5. FUENTE ADMINISTRATIVA
+6. AVALUO
+7. RESUMEN
+8. BORRADOR RESOLUCION
+
+Navegación del wizard: **"Continuar"** (flecha `arrow_forward`) avanza al siguiente
+paso; "Cancelar Trámite" aborta.
+
+> NPN verificado en R-2026-0077: `763640001000000013201000000000` tiene 30 dígitos
+> y los campos de pantalla reconstruyen exactamente el NPN. Estructura correcta.
 
 ---
 

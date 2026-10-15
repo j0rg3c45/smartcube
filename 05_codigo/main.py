@@ -36,6 +36,11 @@ Comandos del REPL (escribe 'ayuda' para verlos dentro de la sesion):
     detalle <R-...>       abre 'Ver detalle' del radicado indicado
     iniciar               pulsa 'Iniciar Tramite' (ACCION CRITICA, pide confirmacion)
 
+  Wizard "Gestion de Tramites" (parte tecnica):
+    agregarfoto           pulsa '+ Agregar foto' (opcional)
+    subirfoto <ruta>      carga un archivo de imagen (input file o dialogo)
+    continuar             pulsa 'Continuar' para avanzar de paso del wizard
+
     cap [etiqueta]        guarda HTML + screenshot de la pantalla actual
     html [selector]       imprime HTML (de la pagina o de un selector)
     lote on|off           activa/desactiva confirmacion para acciones criticas
@@ -203,6 +208,58 @@ def iniciar_tramite(page) -> None:
     mostrar_estado(page)
 
 
+# --- Wizard "Gestion de Tramites" (parte tecnica) ---
+
+def agregar_foto(page) -> None:
+    """Pulsa el boton '+ Agregar foto' (opcional) del paso actual del wizard."""
+    boton = page.get_by_role("button", name="+ Agregar foto")
+    if boton.count() == 0:
+        boton = page.get_by_text("Agregar foto", exact=False)
+    boton.first.click()
+    page.wait_for_timeout(400)
+    print("  '+ Agregar foto' pulsado.")
+
+
+def subir_foto(page, ruta: str) -> None:
+    """Carga un archivo de imagen en el input file del paso actual.
+
+    Busca un <input type=file>. Si el boton '+ Agregar foto' abre un dialogo
+    nativo, Playwright lo intercepta via file_chooser.
+    """
+    ruta = ruta.strip().strip('"')
+    archivo = Path(ruta)
+    if not archivo.exists():
+        print(f"  No existe el archivo: {ruta}")
+        return
+    inputs = page.locator("input[type=file]")
+    if inputs.count() > 0:
+        inputs.first.set_input_files(str(archivo))
+        page.wait_for_timeout(600)
+        print(f"  Foto cargada en input file: {archivo.name}")
+        return
+    # Si no hay input visible, intentar via file chooser al pulsar 'Agregar foto'.
+    try:
+        with page.expect_file_chooser() as fc_info:
+            agregar_foto(page)
+        fc_info.value.set_files(str(archivo))
+        page.wait_for_timeout(600)
+        print(f"  Foto cargada via dialogo: {archivo.name}")
+    except Exception as e:
+        print(f"  No se pudo cargar la foto: {type(e).__name__}: {e}")
+
+
+def continuar_wizard(page) -> None:
+    """Pulsa el boton 'Continuar' del wizard para avanzar de paso."""
+    boton = page.get_by_role("button", name="Continuar")
+    if boton.count() == 0:
+        boton = page.locator("button", has_text="Continuar")
+    boton.first.click()
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(400)
+    print("  'Continuar' pulsado.")
+    mostrar_estado(page)
+
+
 def repl(page, base_url: str) -> None:
     global _pedir_confirmacion
     print("\n=== Sesion interactiva SmartCube QA ===")
@@ -282,6 +339,15 @@ def repl(page, base_url: str) -> None:
                     abrir_detalle(page, arg)
             elif cmd == "iniciar":
                 iniciar_tramite(page)
+            elif cmd == "agregarfoto":
+                agregar_foto(page)
+            elif cmd == "subirfoto":
+                if not arg:
+                    print("  Uso: subirfoto <ruta del archivo de imagen>")
+                else:
+                    subir_foto(page, arg)
+            elif cmd == "continuar":
+                continuar_wizard(page)
             elif cmd == "cap":
                 guardar_captura(page, arg or "pantalla")
             elif cmd == "html":
