@@ -167,8 +167,14 @@ Apoyo al proceso de QA:
 
 - **Asignación** (`/gestion-predial/asignacion`): pantalla donde se revisan los
   **radicados pendientes** (trámites por asignar / en espera de gestión).
-  <!-- Pendiente: documentar los campos del listado (nº radicado, estado, fecha,
-  responsable, etc.) y las acciones disponibles sobre cada radicado. -->
+  - Columnas de la tabla: `[expandir] | Radicado | Fecha | Solicitante | Estado |
+    Trámites | Validación | Acciones`.
+  - **Criterio de revisión: la columna `Estado`.** Los radicados se revisan/filtran
+    por su estado. Valores observados:
+    - `Asignado` (badge azul)
+    - `Completado` (badge verde)
+  - No confundir `Estado` con la columna `Validación` (valores: `Completa` o
+    `Pendiente: Técnica, Jurídica`).
 
 ---
 
