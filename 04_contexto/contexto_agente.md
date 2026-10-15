@@ -342,7 +342,31 @@ en este proyecto. Mantener solo a título informativo.
 > administrativo" se habilito. Confirma que la validacion topologica funciona de punta
 > a punta (bloquea con error, libera al corregir).
 
+| 8 | (general) | Captura de NPN / validación | Los campos de captura del Número Predial Nacional (NPN) NO validan longitud: permiten ingresar cadenas con longitud arbitraria (menor o mayor a los 30 dígitos oficiales), sin restricción en interfaz ni en capa de negocio. Riesgo de inconsistencias en BD, reprocesos y desalineación con el Sistema Catastral Multipropósito y las ORIP. | Redacción técnica completa para el informe en la sección 8.1. Aportado por el usuario. |
+
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
+
+### 8.1 Redacción técnica para el informe (hallazgos elaborados)
+
+> Textos listos para el apartado de Recomendaciones / Hallazgos Técnicos del informe final.
+
+#### Validación y control de longitud en la captura del Número Predial Nacional (NPN)
+
+**Hallazgo / Diagnóstico actual:**
+
+En los módulos y formularios actuales de captura de datos (como el evidenciado
+durante la tramitación de expedientes con efectos registrales), los campos destinados
+a la digitación del Número Predial Nacional (NPN) carecen de restricciones y
+validaciones a nivel de interfaz de usuario y capa de negocio. Esto permite el ingreso
+erróneo de cadenas con longitudes arbitrarias (tanto menores como mayores a los 30
+caracteres requeridos), lo cual genera inconsistencias en la base de datos, reprocesos
+en la expedición de actos administrativos y riesgos de desalineación con la información
+del Sistema Catastral Multipropósito y las Oficinas de Registro de Instrumentos
+Públicos.
+
+**Recomendación:** implementar validación de longitud fija (30 dígitos) y de
+estructura del NPN tanto en la interfaz de usuario (bloqueo/alerta al digitar) como en
+la capa de negocio (rechazo en el guardado), antes de permitir avanzar el trámite.
 
 ---
 
