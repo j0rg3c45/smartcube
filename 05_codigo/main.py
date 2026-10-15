@@ -28,6 +28,14 @@ Comandos del REPL (escribe 'ayuda' para verlos dentro de la sesion):
     text <selector>       imprime el texto de un elemento
     count <selector>      cuenta cuantos elementos coinciden
     rows                  resume filas de la primera tabla visible
+
+  Flujo de radicados (modulo Asignacion):
+    asignacion            navega al modulo de Asignacion de Radicados
+    estado [Estado]       filtra por un estado (por defecto 'Asignado')
+    radicados             lista los radicados visibles ordenados (menor a mayor)
+    detalle <R-...>       abre 'Ver detalle' del radicado indicado
+    iniciar               pulsa 'Iniciar Tramite' (ACCION CRITICA, pide confirmacion)
+
     cap [etiqueta]        guarda HTML + screenshot de la pantalla actual
     html [selector]       imprime HTML (de la pagina o de un selector)
     lote on|off           activa/desactiva confirmacion para acciones criticas
@@ -119,6 +127,76 @@ def mostrar_estado(page) -> None:
         pass
 
 
+def ir_asignacion(page, base_url: str) -> None:
+    """Navega al modulo de Asignacion de Radicados."""
+    page.goto(base_url + "/gestion-predial/asignacion", wait_until="networkidle")
+    mostrar_estado(page)
+
+
+def filtrar_estado(page, estado: str = "Asignado") -> None:
+    """Abre el filtro de Estado y marca el checkbox del estado indicado.
+
+    No es accion critica (solo filtra la vista), por eso no pide confirmacion.
+    """
+    # Abrir el desplegable (boton que muestra 'Todos los estados').
+    page.get_by_text("Todos los estados", exact=False).first.click()
+    page.wait_for_timeout(400)
+    # Marcar el checkbox cuyo label coincide con el estado.
+    etiqueta = page.locator("label", has_text=estado).first
+    etiqueta.locator("input[type=checkbox]").check()
+    page.wait_for_timeout(300)
+    # Cerrar el desplegable haciendo clic fuera (en el titulo de la pagina).
+    page.keyboard.press("Escape")
+    page.wait_for_load_state("networkidle")
+    print(f"  Filtro de estado aplicado: {estado}")
+
+
+def listar_radicados(page) -> list[str]:
+    """Devuelve la lista de numeros de radicado visibles en la tabla, ordenados."""
+    celdas = page.locator("table tbody tr td:nth-child(2)")
+    rads = []
+    for i in range(celdas.count()):
+        t = celdas.nth(i).inner_text().strip()
+        if t:
+            rads.append(t)
+    return sorted(rads)
+
+
+def abrir_detalle(page, radicado: str) -> bool:
+    """Abre el 'Ver detalle' (open_in_new) de la fila cuyo radicado coincide.
+
+    Devuelve True si lo encontro y abrio. Accion de solo lectura (no critica).
+    """
+    filas = page.locator("table tbody tr")
+    for i in range(filas.count()):
+        fila = filas.nth(i)
+        if radicado in fila.inner_text():
+            boton = fila.locator('button[title="Ver detalle"], a[title="Ver detalle"]')
+            if boton.count() == 0:
+                # Respaldo: cualquier elemento con el icono open_in_new en la fila.
+                boton = fila.get_by_text("open_in_new", exact=False)
+            boton.first.click()
+            page.wait_for_load_state("networkidle")
+            mostrar_estado(page)
+            return True
+    print(f"  No se encontro el radicado {radicado} en la tabla visible.")
+    return False
+
+
+def iniciar_tramite(page) -> None:
+    """Pulsa el boton 'Iniciar Tramite'. ACCION CRITICA: pide confirmacion."""
+    if not confirmar("Iniciar Tramite (cambia el estado del tramite)"):
+        print("  Cancelado por el usuario.")
+        return
+    boton = page.get_by_role("button", name="Iniciar Trámite")
+    if boton.count() == 0:
+        boton = page.get_by_text("Iniciar Trámite", exact=False)
+    boton.first.click()
+    page.wait_for_load_state("networkidle")
+    print("  'Iniciar Tramite' ejecutado.")
+    mostrar_estado(page)
+
+
 def repl(page, base_url: str) -> None:
     global _pedir_confirmacion
     print("\n=== Sesion interactiva SmartCube QA ===")
@@ -184,6 +262,20 @@ def repl(page, base_url: str) -> None:
                 print(f"  Coincidencias: {localizar(page, arg).count()}")
             elif cmd == "rows":
                 resumir_filas(page)
+            elif cmd == "asignacion":
+                ir_asignacion(page, base_url)
+            elif cmd == "estado":
+                filtrar_estado(page, arg or "Asignado")
+            elif cmd == "radicados":
+                rads = listar_radicados(page)
+                print(f"  Radicados visibles ({len(rads)}), ordenados: {', '.join(rads)}")
+            elif cmd == "detalle":
+                if not arg:
+                    print("  Uso: detalle <numero de radicado>")
+                else:
+                    abrir_detalle(page, arg)
+            elif cmd == "iniciar":
+                iniciar_tramite(page)
             elif cmd == "cap":
                 guardar_captura(page, arg or "pantalla")
             elif cmd == "html":

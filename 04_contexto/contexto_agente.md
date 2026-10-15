@@ -187,19 +187,36 @@ Apoyo al proceso de QA:
   - Cada trámite muestra: nº de trámite, tipo (p. ej. "Mutación 2a Clase - Segregación"),
     analista, estado, **NPN del predio** y el botón **"Iniciar Trámite"**.
 
-#### Flujo de un trámite (proceso)
+#### Procedimiento operativo por radicado (estado Asignado)
 
-Cada trámite tiene su propio flujo. Secuencia:
+Flujo que se repite para CADA radicado en estado "Asignado":
 
-1. **Iniciar Trámite:** el trabajo del trámite se arranca con el botón
-   **"Iniciar Trámite"** (ícono `play_arrow`, clase `bg-primary`) dentro del trámite
-   en el Detalle del Radicado.
-2. **Validación Técnica:** primero se realiza la validación técnica.
-3. **Confirmación del usuario:** tras la validación técnica, el usuario confirma.
-4. **Validación Jurídica:** luego pasa a la validación jurídica.
+1. Menú lateral: **Gestión Catastral** → **Asignación** (`/gestion-predial/asignacion`).
+2. Abrir el filtro de **Estado**, desplegar y marcar el checkbox **Asignado**
+   (deseleccionar los demás si aplica). Confirmar.
+3. Dejar **cargar la data** (la tabla se refresca con los radicados en ese estado).
+4. En la columna **Radicado**, procesar en orden **de menor a mayor** (empezar por el
+   radicado de número más bajo visible, p. ej. R-2026-0077).
+5. En la fila del radicado, pulsar **"Ver detalle"** (ícono `open_in_new`, al final de
+   la fila) para abrir el Detalle del Radicado.
+6. En el Detalle, pulsar **"Iniciar Trámite"** (ícono `play_arrow`, `bg-primary`).
+7. **Repetir** el ciclo (pasos 4-6) para cada radicado en estado Asignado hasta
+   terminar.
 
-> Pendiente de confirmar con el usuario el detalle exacto de los pasos 2-4
-> (dónde confirma el usuario y qué botón usa en cada etapa).
+> Cada ciclo = un radicado procesado. La meta global es 50 radicados (ver sección 8),
+> registrando toda inconsistencia encontrada en el camino.
+
+#### Flujo de un trámite (validaciones)
+
+Dentro de un trámite ya iniciado, la secuencia observada es:
+
+1. **Iniciar Trámite** (botón `play_arrow`).
+2. **Validación Técnica** (primera validación).
+3. **Confirmación del usuario**.
+4. **Validación Jurídica** (segunda validación).
+
+> Pendiente de confirmar el detalle exacto de los pasos 2-4 (dónde confirma el
+> usuario y qué botón usa en cada etapa). Se mapeará en vivo al iniciar un trámite.
 
 ---
 
