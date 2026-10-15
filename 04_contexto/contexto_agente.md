@@ -179,6 +179,28 @@ Apoyo al proceso de QA:
   - La acción "Ver detalle" (ícono `open_in_new`) NO cambia la URL: abre un modal
     sobre la tabla.
 
+- **Detalle del Radicado** (modal/vista de un radicado): muestra
+  - **Solicitante** (nombre, documento, tipo de solicitante, dirección, correo,
+    notificación email), **Resumen** (radicado, fecha, estado, nº de trámites),
+    **Documentos** (adjuntos del radicado), **Trámites** (lista) y los paneles de
+    **Validación Técnica** y **Validación Jurídica** (estado, quién validó, fecha, nota).
+  - Cada trámite muestra: nº de trámite, tipo (p. ej. "Mutación 2a Clase - Segregación"),
+    analista, estado, **NPN del predio** y el botón **"Iniciar Trámite"**.
+
+#### Flujo de un trámite (proceso)
+
+Cada trámite tiene su propio flujo. Secuencia:
+
+1. **Iniciar Trámite:** el trabajo del trámite se arranca con el botón
+   **"Iniciar Trámite"** (ícono `play_arrow`, clase `bg-primary`) dentro del trámite
+   en el Detalle del Radicado.
+2. **Validación Técnica:** primero se realiza la validación técnica.
+3. **Confirmación del usuario:** tras la validación técnica, el usuario confirma.
+4. **Validación Jurídica:** luego pasa a la validación jurídica.
+
+> Pendiente de confirmar con el usuario el detalle exacto de los pasos 2-4
+> (dónde confirma el usuario y qué botón usa en cada etapa).
+
 ---
 
 ## 6. Convenciones de trabajo
