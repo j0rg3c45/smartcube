@@ -322,8 +322,8 @@ en este proyecto. Mantener solo a título informativo.
 
 | # | Radicado | Campo / Sección | Inconsistencia encontrada | Evidencia / Nota |
 |---|----------|-----------------|---------------------------|------------------|
-| 1 | (varios) | Asignación / contador | El "Total Radicados" cambió de 17 a 16 y "Validación Completa" de 4 a 3 entre dos cargas de la misma pantalla, sin acción aparente que lo justifique. Verificar causa. | Capturas 20261014 (17) vs 20261015_161315 (16). Por confirmar. |
-| 2 | R-2026-0077 | Trámite / estado | Tras pulsar "Iniciar Trámite" (que llevó al wizard "En proceso"), el radicado sigue listado en estado "Asignado" en Asignación. Revisar si el estado debería cambiar. | Captura 20261015_161315. Por confirmar con el usuario. |
+| 1 | (varios) | Asignación / contador | OBSERVACION (probable comportamiento normal): el "Total Radicados" varió 17->16->17. Baja mientras un radicado está "En proceso" (tras Iniciar Trámite) y vuelve a subir cuando se resuelve/pasa a calidad. El contador parece reflejar los pendientes de gestión, no un total fijo. A confirmar si es el conteo esperado. | 17 (inicio) -> 16 (0077 en proceso) -> 17 (0077 paso a calidad). |
+| 2 | R-2026-0077 | Trámite / estado | ACLARADO: "Iniciar Trámite" abre el wizard pero el radicado sigue "Asignado" hasta que se completa y se pulsa "Pasar a calidad". Al pasar a calidad, el radicado SALE del listado de Asignación. Comportamiento coherente, no es inconsistencia. | Captura 20261015_174417 (0077 ya no aparece). |
 
 | 3 | R-2026-0077 | Trámite / Paso 3 Terreno / Área | DESCARTADO como bug: el área inicial (3.050 m²) estaba fuera de la tolerancia del 10% (17,8% del polígono) y la plataforma lo marcó en rojo. Tras subir el shape correcto, el % pasó a 100% y la alerta desapareció. La validación de tolerancia FUNCIONA (comportamiento esperado, no inconsistencia). | Capturas 20261015_161838 (rojo) y 20261015_163336 (corregido). |
 
@@ -389,31 +389,41 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
 
 ## 10. Estado de la sesión (dónde vamos)
 
-**Sesión 15/10/2026 — pausada en el Paso 7 de R-2026-0077.**
+**Sesión 15/10/2026 — R-2026-0077 COMPLETADO (pasó a calidad).**
 
-Dónde quedamos:
-- Procesando R-2026-0077 (Efectos Registrales - Actualización Linderos Art. 6.1) con
-  el wizard de 8 pasos. Completados pasos 1-6; en el **Paso 7 (Resumen)** la validación
-  final arrojó **2 errores de traslape** que BLOQUEAN pasar al borrador (hallazgo #7).
-- El traslape (7.82 m²) lo introdujo el shape subido en el Paso 3. Para resolver:
-  subir el predio vecino (NPN 76364...10020) como colindante con geometría corregida,
-  o ajustar la geometría del trámite.
-- **El usuario está consultando cómo ajustar/resolver estos errores de geometría.**
-  Trámite R-2026-0077 queda PAUSADO en el Paso 7 (no se pasó a borrador).
+- **R-2026-0077 procesado de punta a punta.** Se resolvió el traslape (re-validación
+  0 errores / 44 OK), se generó el borrador de resolución y se pulsó **"Pasar a
+  calidad"**. El radicado salió del listado de Asignación (pasó a estado Calidad).
+- **Primer radicado completo de la meta de 50.**
+
+#### Flujo técnico completo del analista (VALIDADO de punta a punta)
+
+1. Asignación -> filtrar estado "Asignado" -> abrir detalle del radicado menor.
+2. "Iniciar Trámite" -> navega al wizard `/gestion-tramites`.
+3. **Wizard de 8 pasos:** Predio (foto) -> Propietario (lectura) -> Terreno
+   (shape + linderos + Guardar) -> Construcciones (preguntar si tiene) -> Fuente
+   Administrativa (formulario) -> Avalúo (calcular retroactivo) -> Resumen
+   (validaciones: deben quedar en 0 errores) -> Borrador Resolución (editor + PDF).
+4. "Pasar a calidad" -> completa la parte técnica; el radicado sale de Asignación.
+
+Botones de avance por paso: "Continuar" / "Siguiente Paso" / "Continuar a
+Construcciones" / "Siguiente: Resumen Final" / "Siguiente" / "Pasar borrador acto
+administrativo" / "Pasar a calidad". (El nombre cambia por paso; a veces el primer
+clic no registra y hay que repetirlo.)
 
 Arquitectura de trabajo activa:
-- `navegador.py` (abre Chrome CDP, perfil persistente) + `qa.py` (REPL de comandos).
-- Comandos disponibles incluyen: asignacion, estado, radicados, abrir, siguiente,
-  detalle, iniciar, agregarfoto, subirfoto, continuar, cap, etc.
+- `navegador.py` (Chrome CDP, perfil persistente) + `qa.py` (REPL de comandos).
+- Comandos: asignacion, estado, radicados, abrir, siguiente, detalle, iniciar,
+  agregarfoto, subirfoto, continuar, cap, click, type, fill, etc.
 
 Para retomar:
 1. Lanzar `uv run navegador.py` y `uv run qa.py` (dos terminales).
-2. Resolver el traslape de R-2026-0077 (según lo que confirme el usuario), o
-3. Pasar al siguiente radicado en estado Asignado (comando `siguiente`).
+2. Procesar el siguiente radicado en Asignado (el menor ahora es R-2026-0079).
 
-Progreso meta: 1 radicado en proceso de 50. Hallazgos registrados: ver sección 8
-(destacan #4 NPN no copiables y #5 propietario con 0% de participación como
-inconsistencias reales por confirmar).
+Progreso meta: **1 de 50 radicados completos.** Hallazgos reales por confirmar:
+#4 (NPN de colindantes no se pueden copiar) y #5 (propietario único con Dominio al
+0% de participación). Validaciones que SÍ funcionan: tolerancia de área (#3) y
+traslape topológico (#7).
 
 ---
 
