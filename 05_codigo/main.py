@@ -145,10 +145,16 @@ def filtrar_estado(page, estado: str = "Asignado") -> None:
     etiqueta = page.locator("label", has_text=estado).first
     etiqueta.locator("input[type=checkbox]").check()
     page.wait_for_timeout(300)
-    # Cerrar el desplegable haciendo clic fuera (en el titulo de la pagina).
-    page.keyboard.press("Escape")
+    # Cerrar el desplegable: clic en un punto neutro (titulo de la pagina).
+    # Escape no siempre cierra este dropdown, por eso clic fuera.
+    try:
+        page.get_by_role("heading", name="Asignación de Radicados").click()
+    except Exception:
+        # Respaldo: clic en la esquina superior izquierda del contenido.
+        page.mouse.click(5, 5)
+    page.wait_for_timeout(300)
     page.wait_for_load_state("networkidle")
-    print(f"  Filtro de estado aplicado: {estado}")
+    print(f"  Filtro de estado aplicado: {estado} (menu cerrado)")
 
 
 def listar_radicados(page) -> list[str]:
