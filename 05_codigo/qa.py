@@ -34,6 +34,8 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
     agregarfoto           pulsa '+ Agregar foto' (opcional)
     subirfoto <ruta>      carga un archivo de imagen
     continuar             pulsa 'Continuar' para avanzar de paso
+    selects               lista los <select> de la pagina con sus opciones e indice
+    select <sel> | <opt>  elige una opcion de un <select> (por etiqueta o value)
 
     cap [etiqueta]        guarda HTML + screenshot
     lote on|off           activa/desactiva confirmacion de acciones criticas
@@ -281,7 +283,16 @@ def conectar(cfg: dict):
         p.stop()
         sys.exit(1)
     contexto = browser.contexts[0] if browser.contexts else browser.new_context()
-    page = contexto.pages[0] if contexto.pages else contexto.new_page()
+    # Elegir una pagina real de la app, ignorando pestañas de DevTools / internas.
+    page = None
+    for pg in contexto.pages:
+        u = (pg.url or "")
+        if u.startswith("devtools://") or u.startswith("chrome://") or u.startswith("about:"):
+            continue
+        page = pg
+        break
+    if page is None:
+        page = contexto.pages[0] if contexto.pages else contexto.new_page()
     return p, browser, page
 
 
@@ -319,6 +330,11 @@ def repl(page, base_url: str) -> None:
                 mostrar_estado(page)
             elif cmd == "url":
                 mostrar_estado(page)
+            elif cmd == "pestanas":
+                ctx = page.context
+                print(f"  Pestañas abiertas ({len(ctx.pages)}):")
+                for idx, pg in enumerate(ctx.pages):
+                    print(f"   [{idx}] {pg.url}")
             elif cmd == "click":
                 if confirmar(f"click en '{arg}'"):
                     localizar(page, arg).first.click()
@@ -377,6 +393,26 @@ def repl(page, base_url: str) -> None:
                     subir_foto(page, arg)
             elif cmd == "continuar":
                 continuar_wizard(page)
+            elif cmd == "select":
+                # Uso: select <selector> | <texto o value de la opcion>
+                sel, _, opt = arg.partition("|")
+                sel = sel.strip(); opt = opt.strip()
+                loc = localizar(page, sel)
+                try:
+                    loc.first.select_option(label=opt)
+                    print(f"  Seleccionado por etiqueta: {opt!r}")
+                except Exception:
+                    loc.first.select_option(value=opt)
+                    print(f"  Seleccionado por value: {opt!r}")
+                page.wait_for_timeout(300)
+            elif cmd == "selects":
+                # Lista todos los <select> de la pagina con sus opciones (para ubicarlos)
+                selects = page.locator("select")
+                print(f"  Hay {selects.count()} desplegables:")
+                for i in range(selects.count()):
+                    opts = selects.nth(i).locator("option")
+                    textos = [opts.nth(j).inner_text().strip() for j in range(min(opts.count(), 6))]
+                    print(f"   [{i}] opciones: {textos}")
             elif cmd == "cap":
                 guardar_captura(page, arg or "pantalla")
             elif cmd == "html":
