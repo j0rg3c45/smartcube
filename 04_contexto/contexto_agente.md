@@ -423,8 +423,20 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
 - Mutación 2a Clase - Segregación (R-2026-0089, Trámite #95).
 - **Rectificaciones - Errores Inscripción Catastral** (R-2026-0075, Trámite #78).
   NPN `763640100000016640901921040001` (30 dígitos, longitud correcta; posición 22 = 9,
-  con edificio/piso/unidad, parece unidad en PH). Validaciones técnica y jurídica ya
-  aprobadas por el analista. Sigue el mismo flujo de wizard.
+  con edificio/piso/unidad, es unidad en PH / apartamento). Validaciones técnica y
+  jurídica ya aprobadas por el analista. Sigue el mismo flujo de wizard.
+  - En este trámite SÍ se **añade una dirección** al predio en el Paso 1 (botón
+    "+ Añadir Dirección" -> modal "Nueva dirección", datos estructurados según LADM).
+
+#### Formulario "Nueva dirección" (Paso 1, estructurada LADM)
+
+Campos: Tipo de dirección (Estructurada/No Estructurada), checkbox "principal";
+**Vía Principal** (Clase de vía, Valor, Letra); **Vía Generadora** (Sector ciudad,
+Valor, Letra, Sector predio); Número del predio; Código postal (6 dígitos);
+**Complemento** (botón "Agregar segmento", p. ej. Apartamento 301); "Nombre del predio"
+(readonly, se arma solo). Botones "Cancelar"/"Agregar". Clases de vía: Avenida Calle,
+Avenida Carrera, Avenida, Autopista, Circunvalar, Calle, Carrera, Diagonal,
+Transversal, Circular.
 
 > El tipo "Efectos Registrales" se trabaja con el wizard de 8 pasos de Gestión de
 > Trámites (predio, propietario, terreno/linderos, construcciones, fuente
