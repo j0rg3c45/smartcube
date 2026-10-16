@@ -329,7 +329,7 @@ en este proyecto. Mantener solo a título informativo.
 
 | 4 | R-2026-0077 | Trámite / Paso 3 / Puntos y Linderos | No se pueden COPIAR los NPN de los predios colindantes por ningún lado: el usuario tuvo que digitar manualmente cada NPN del colindante en el campo "NPN o nombre del colindante". No hay forma de copiar el NPN desde el mapa ni desde otra vista. Afecta la usabilidad y es propenso a errores de digitación. Redacción técnica en sección 8.1. | Capturas 20261015_164646 / 20261015_164851. Confirmado por el usuario. |
 
-| 5 | R-2026-0077 | Paso 2/7 Propietario / % Participación | El único propietario (SANDRA MONICA VILLANUEVA QUINTANA) con tipo de derecho "Dominio" figura con % de participación = 0% (en el resumen aparece como "000031534120 (0E-10)", es decir 0). Lo esperado para un único propietario con dominio es 100%. | Capturas paso2 y paso7_resumen. Por confirmar con usuario si es dato de origen o cálculo de la plataforma. |
+| 5 | R-2026-0077 y R-2026-0075 | Paso 2 Propietario / % Participación | CONFIRMADO (patrón en 2 predios). El propietario único con derecho "Dominio" llega con % de participación = 0 (valor "0E-10"), cuando lo correcto para un único propietario es 100%. En R-2026-0075 el analista tuvo que CORREGIRLO manualmente a 100 en el editor de propietario. La plataforma no autocompleta el 100% para propietario único. | R-2026-0077 (SANDRA MONICA, 0%) y R-2026-0075 (BERMUDEZ..., 0E-10 corregido a 100). Captura 20261016_180805. |
 | 6 | R-2026-0077 | Paso 7 Resumen / Fuente administrativa | DESCARTADO: era un falso positivo (el HTML estaba a medio cargar). Con el resumen cargado, los datos se muestran bien. No es inconsistencia. | HTML intermedio sin terminar de cargar. |
 | 7 | R-2026-0077 | Paso 7 / Validación topológica | VALIDACION CORRECTA (no es bug): el sistema detectó 2 errores que bloquean avanzar: (a) CUSTOM_TERRENO_TRASLAPE_VECINO: el terreno (predio 593) se traslapa 7.82 m² con el vecino 76364...10020 (predio 5); (b) FIJA_TRASLAPE_COLINDANTE: traslape con predio 76364...10020. El botón "Pasar borrador acto administrativo" queda bloqueado. La validación de solapes/topología FUNCIONA. | Captura 20261015_165946_paso7_errores. 2 Errores, 0 Warnings, 42 OK. |
 
@@ -430,6 +430,13 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
   - **REGLA:** en el Paso 1 (PREDIO), el agente SIEMPRE debe preguntar al usuario si
     desea o no agregar una dirección al trámite. Si sí, se diligencia el modal; si no,
     se continúa.
+
+> Particularidades del tipo **Rectificaciones - Errores Inscripción Catastral**
+> (vistas en R-2026-0075), que lo diferencian del de Efectos Registrales:
+> - Paso 1: se AÑADE una dirección al predio y se diligencia la "Caracterización LADM"
+>   (Tipo de Predio, Tipo de Derecho; la Condición es readonly, derivada del NPN).
+> - Paso 2 (Propietario): NO es solo lectura; se puede EDITAR el propietario y agregar
+>   nuevos interesados. Aquí fue donde se corrigió el % de participación de 0 a 100.
 
 #### Formulario "Nueva dirección" (Paso 1, estructurada LADM)
 
