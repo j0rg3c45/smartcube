@@ -89,17 +89,30 @@ Ejecucion asistida y selectores:
   datos ingresados, boton o accion ejecutada y estado/confirmacion visual del sistema.
 
 Flujo tecnico de un tramite (REGLA - MISMO para todos):
-- Ya se completo un tramite de punta a punta (Efectos Registrales, R-2026-0077). TODOS
-  los demas tramites siguen el MISMO flujo:
+- Ya se completaron 2 tramites de punta a punta: Efectos Registrales (R-2026-0077) y
+  Rectificaciones (R-2026-0075). TODOS los tramites siguen el MISMO flujo:
   1. Asignacion -> filtrar estado "Asignado" -> abrir detalle del radicado menor.
+     - Si la Validacion esta "Pendiente: Tecnica, Juridica", el analista hace esas
+       validaciones ANTES de iniciar. Si esta "Completa", inicia directo.
   2. "Iniciar Tramite" -> wizard `/gestion-tramites`.
-  3. Wizard de 8 pasos: Predio (foto; PREGUNTAR si desea agregar direccion) ->
-     Propietario (lectura/editar) -> Terreno (shape + linderos + Guardar) ->
-     Construcciones (PREGUNTAR si tiene) -> Fuente Administrativa (formulario) ->
-     Avaluo (PREGUNTAR desde/hasta que año recalcular el retroactivo) -> Resumen
-     (0 errores) -> Borrador Resolucion (editor + PDF).
+  3. Wizard de 8 pasos: Predio (foto; PREGUNTAR si desea agregar direccion; llenar
+     Caracterizacion LADM: Tipo de Predio y Tipo de Derecho) -> Propietario
+     (lectura o EDITAR; ojo: el % de participacion suele venir en 0 y hay que
+     corregirlo a 100 para propietario unico) -> Terreno (conservar o shape +
+     linderos + Guardar) -> Construcciones (PREGUNTAR si tiene; si tiene, editar la
+     UC: area, calificacion completa, año valido, avaluo_caracterizacion, y cargar
+     poligono para que la planta tenga altura) -> Fuente Administrativa (formulario)
+     -> Avaluo (PREGUNTAR desde/hasta que año recalcular el retroactivo) -> Resumen
+     (VALIDACIONES: deben quedar en 0 ERRORES; si hay errores, corregir y RE-VALIDAR)
+     -> Borrador Resolucion (editor + Actualizar vista previa PDF).
   4. "Pasar a calidad" -> el radicado sale de Asignacion.
-- El detalle completo esta en `04_contexto/contexto_agente.md` (seccion 10).
+- El detalle completo y los hallazgos estan en `04_contexto/contexto_agente.md`.
+
+Operacion del navegador (REGLA):
+- NO abrir DevTools (F12) durante la sesion: el REPL se confunde de pestaña y hay que
+  reiniciar todo. Si pasa: cerrar DevTools, cerrar navegador y REPL, y relanzar.
+- Reiniciar el REPL puede cerrar modales/wizard; cuando se llene un modal, hacerlo de
+  corrido sin reiniciar el REPL en medio.
 
 Modo de trabajo con el navegador (REGLA):
 - Cuando el usuario diga "comencemos" (o similar), el AGENTE debe DAR LOS COMANDOS

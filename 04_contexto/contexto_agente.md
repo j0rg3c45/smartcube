@@ -570,4 +570,4 @@ sigue guardada en el perfil).
 
 ---
 
-_Última actualización: 15/10/2026_
+_Última actualización: 16/10/2026_
