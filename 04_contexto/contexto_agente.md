@@ -344,6 +344,9 @@ en este proyecto. Mantener solo a título informativo.
 
 | 8 | (general) | Captura de NPN / validación | Los campos de captura del Número Predial Nacional (NPN) NO validan longitud: permiten ingresar cadenas con longitud arbitraria (menor o mayor a los 30 dígitos oficiales), sin restricción en interfaz ni en capa de negocio. Riesgo de inconsistencias en BD, reprocesos y desalineación con el Sistema Catastral Multipropósito y las ORIP. | Redacción técnica completa para el informe en la sección 8.1. Aportado por el usuario. |
 
+| 9 | R-2026-0075 | Paso 4 Construcción / UC A / Calificación | La unidad de construcción (apartamento ya existente en catastro) llegó SIN calificación catastral (Estructura, Acabados, Baño, Cocina todo en "Sin selección") y SIN año de construcción. El analista debe llenar toda la calificación desde cero. A confirmar si es esperado en Rectificaciones o dato faltante de origen. | Capturas 20261016_181453 / 182104. |
+| 10 | R-2026-0075 | Paso 4 Construcción / UC A / Año | Tras editar, el campo "Año" muestra "5" (no un año de 4 dígitos como 2005/2015). Posible truncamiento o dato mal mostrado. Por confirmar. | Captura 20261016_182202. |
+
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
 ### 8.1 Redacción técnica para el informe (hallazgos elaborados)
