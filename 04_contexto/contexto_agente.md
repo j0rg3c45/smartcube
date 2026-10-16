@@ -419,6 +419,11 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
 
 ---
 
+> **REGLA Paso 6 (Avalúo):** el agente SIEMPRE debe preguntar al usuario desde qué año
+> (o hasta qué año) se recalcula el avalúo retroactivo, antes de pulsar "Calcular
+> retroactivo". El año de inicio se elige en el desplegable "Vigencia" y calcula desde
+> ese año hasta la vigencia anterior a la actual. (En R-2026-0075 el usuario eligió 2016.)
+
 #### Tipos de trámite observados
 
 - **Efectos Registrales - Actualización Linderos Artículo 6.1** (R-2026-0077,
