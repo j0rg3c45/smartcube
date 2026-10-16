@@ -427,6 +427,9 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
   jurídica ya aprobadas por el analista. Sigue el mismo flujo de wizard.
   - En este trámite SÍ se **añade una dirección** al predio en el Paso 1 (botón
     "+ Añadir Dirección" -> modal "Nueva dirección", datos estructurados según LADM).
+  - **REGLA:** en el Paso 1 (PREDIO), el agente SIEMPRE debe preguntar al usuario si
+    desea o no agregar una dirección al trámite. Si sí, se diligencia el modal; si no,
+    se continúa.
 
 #### Formulario "Nueva dirección" (Paso 1, estructurada LADM)
 

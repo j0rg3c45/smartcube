@@ -93,10 +93,10 @@ Flujo tecnico de un tramite (REGLA - MISMO para todos):
   los demas tramites siguen el MISMO flujo:
   1. Asignacion -> filtrar estado "Asignado" -> abrir detalle del radicado menor.
   2. "Iniciar Tramite" -> wizard `/gestion-tramites`.
-  3. Wizard de 8 pasos: Predio (foto) -> Propietario (lectura) -> Terreno (shape +
-     linderos + Guardar) -> Construcciones (PREGUNTAR si tiene) -> Fuente Administrativa
-     (formulario) -> Avaluo (calcular retroactivo) -> Resumen (0 errores) -> Borrador
-     Resolucion (editor + PDF).
+  3. Wizard de 8 pasos: Predio (foto; PREGUNTAR si desea agregar direccion) ->
+     Propietario (lectura) -> Terreno (shape + linderos + Guardar) -> Construcciones
+     (PREGUNTAR si tiene) -> Fuente Administrativa (formulario) -> Avaluo (calcular
+     retroactivo) -> Resumen (0 errores) -> Borrador Resolucion (editor + PDF).
   4. "Pasar a calidad" -> el radicado sale de Asignacion.
 - El detalle completo esta en `04_contexto/contexto_agente.md` (seccion 10).
 
