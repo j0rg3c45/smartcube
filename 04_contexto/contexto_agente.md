@@ -505,14 +505,21 @@ Arquitectura de trabajo activa:
 - Comandos: asignacion, estado, radicados, abrir, siguiente, detalle, iniciar,
   agregarfoto, subirfoto, continuar, cap, click, type, fill, etc.
 
-**CIERRE sesión 15/10/2026.** Trabajo guardado y repo sincronizado.
+**Sesión 16/10/2026: R-2026-0075 COMPLETADO (2 de 50).**
+
+- R-2026-0075 (Rectificaciones - Errores Inscripción Catastral) procesado de punta a
+  punta y pasado a calidad. Fue un caso rico en hallazgos (ver #4..#13).
+  Correcciones que requirió: añadir dirección, editar propietario (% de 0 a 100),
+  editar la UC (área 51, calificación completa, año 2016, avalúo_caracterización),
+  cargar polígono de construcción (para la altura), y corregir el "Nombre" de la
+  dirección estructurada original. Avalúo retroactivo desde 2016.
 
 Para retomar la próxima vez:
-1. Lanzar `uv run navegador.py` y `uv run qa.py` (dos terminales).
+1. Lanzar `uv run navegador.py` y `uv run qa.py` (dos terminales). NO abrir DevTools (F12).
 2. Procesar el siguiente radicado en Asignado: el menor es **R-2026-0079** (EMPRESA46).
    Usar el mismo flujo de 8 pasos (comando `abrir R-2026-0079` o `siguiente`).
 
-Progreso meta: **1 de 50 radicados completos.**
+Progreso meta: **2 de 50 radicados completos** (R-2026-0077 y R-2026-0075).
 
 Hallazgos para el informe final (ver secciones 8 y 8.1):
 - #4 — NPN de colindantes no se pueden copiar (redacción técnica lista en 8.1).
