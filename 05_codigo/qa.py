@@ -213,6 +213,27 @@ def subir_foto(page, ruta: str) -> None:
         print(f"  No se pudo cargar la foto: {type(e).__name__}: {e}")
 
 
+def llenar_direccion(page, vp_valor, vp_letra, vg_valor, vg_letra, num_predio):
+    """Llena los campos de texto fijos del modal de nueva direccion.
+
+    Usa los placeholders del formulario para ubicar cada campo. Los desplegables
+    (tipo, clase de via) se asumen ya seleccionados. Los complementos/segmentos
+    se agregan aparte.
+    """
+    # Vía principal: Valor (placeholder 'Ej: 10') y Letra (primer 'Ej: A').
+    page.locator("input[placeholder='Ej: 10']").first.fill(str(vp_valor))
+    letras = page.locator("input[placeholder='Ej: A']")
+    letras.nth(0).fill(str(vp_letra))          # letra via principal
+    # Vía generadora: Valor (placeholder 'Ej: 5') y Letra (segundo 'Ej: A').
+    page.locator("input[placeholder='Ej: 5']").first.fill(str(vg_valor))
+    if letras.count() > 1:
+        letras.nth(1).fill(str(vg_letra))      # letra via generadora
+    # Número del predio (placeholder 'Ej: 42').
+    page.locator("input[placeholder='Ej: 42']").first.fill(str(num_predio))
+    page.wait_for_timeout(300)
+    print(f"  Direccion llenada: VP {vp_valor}{vp_letra} / VG {vg_valor}{vg_letra} / Nro {num_predio}")
+
+
 def continuar_wizard(page) -> None:
     """Pulsa el boton de avanzar del wizard. El nombre cambia entre pasos:
     'Continuar' (paso 1) o 'Siguiente Paso' (pasos siguientes)."""
@@ -393,6 +414,14 @@ def repl(page, base_url: str) -> None:
                     subir_foto(page, arg)
             elif cmd == "continuar":
                 continuar_wizard(page)
+            elif cmd == "direccion":
+                # Uso: direccion <vpValor> <vpLetra> <vgValor> <vgLetra> <numPredio>
+                partes_dir = arg.split()
+                if len(partes_dir) < 5:
+                    print("  Uso: direccion <vpValor> <vpLetra> <vgValor> <vgLetra> <numPredio>")
+                    print("  Ej:  direccion 21 AS 21 A 11")
+                else:
+                    llenar_direccion(page, *partes_dir[:5])
             elif cmd == "select":
                 # Uso: select <selector> | <texto o value de la opcion>
                 sel, _, opt = arg.partition("|")
