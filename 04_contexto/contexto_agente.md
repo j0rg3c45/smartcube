@@ -354,6 +354,7 @@ en este proyecto. Mantener solo a título informativo.
 
 | 15 | R-2026-0072 | Paso 1 / Número de Matrícula | El campo "Número de Matrícula" debe ser SOLO numérico (no lleva el código ORIP ni guion). Poner "370-125478" fue rechazado por la validación CUSTOM_PREDIO_CF_MATRICULA_NUMERICA; lo correcto es solo el folio (125478). Validación correcta de la plataforma. | Captura 20261019_173710. |
 | 16 | R-2026-0072 | Paso 7 / Destino vs Construcción | La plataforma valida que un predio con destino Habitacional/Comercial/Industrial DEBE tener al menos una unidad de construcción (CUSTOM_DESTINO_REQUIERE_UC). Si es un lote sin construcción, el destino debe ser tipo "Lote Urbanizado No Construido". Validación correcta. | Captura 20261019_173710. |
+| 17 | R-2026-0072 | Paso 7 / Traslape de terreno (topología) | CUSTOM_TERRENO_TRASLAPE_VECINO: el terreno (predio 112067) se traslapa 55.40 m² con el vecino 763640100000004630801000000000 (predio 31598). El error SOLO se detecta en la plataforma (al validar en el Paso 7), DESPUÉS de cargar la geometría. El analista no tiene cómo validar/prever el traslape antes porque no cuenta con esa validación topológica en QGIS. RECOMENDACIÓN (ver 8.1). | Captura 20261019_173911. |
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
@@ -420,6 +421,24 @@ colindancia.
 predios/colindantes y permitir seleccionar el NPN de un predio vecino desde el mapa o
 desde un buscador integrado, de modo que se autocomplete el campo "NPN o nombre del
 colindante" sin digitación manual.
+
+#### Validación topológica temprana de traslapes (antes de cargar la geometría)
+
+**Hallazgo / Diagnóstico actual:**
+
+La detección de traslapes (solapes) entre el terreno del trámite y los predios vecinos
+se realiza únicamente en la plataforma, en la etapa de validación del resumen final,
+es decir, DESPUÉS de haber cargado la geometría (shape/GeoJSON). El analista no dispone
+de un mecanismo de validación topológica previa en su entorno de trabajo (QGIS), por lo
+que no puede identificar ni corregir los solapamientos antes de subir la geometría.
+Esto genera reprocesos: cargar, validar, volver a QGIS a corregir el polígono y
+recargar, de forma iterativa hasta que el traslape desaparece.
+
+**Recomendación:** proveer una validación topológica temprana del lado del analista
+(por ejemplo, un complemento o verificación en QGIS, o una herramienta de pre-validación
+de geometría en la plataforma que corra antes de consolidar el trámite) que detecte los
+traslapes contra los predios vecinos del catastro antes de la carga final, reduciendo
+reprocesos y errores en la etapa de resumen.
 
 ---
 
