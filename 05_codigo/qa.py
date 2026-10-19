@@ -29,6 +29,8 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
     abrir <R-...>         AUTO: Asignacion -> filtrar Asignado -> abrir detalle
     siguiente             AUTO: abre el radicado MENOR en estado Asignado
     iniciar               pulsa 'Iniciar Tramite' (ACCION CRITICA)
+    listar                recorre TODAS las paginas y lista los Asignado ordenados
+    validar <R-...>       AUTO: abre detalle y aprueba validacion tecnica + juridica
 
   Wizard "Gestion de Tramites" (parte tecnica):
     agregarfoto           pulsa '+ Agregar foto' (opcional)
@@ -180,6 +182,84 @@ def iniciar_tramite(page) -> None:
     page.wait_for_load_state("networkidle")
     print("  'Iniciar Tramite' ejecutado.")
     mostrar_estado(page)
+
+
+def _validacion(page, nombre: str, observacion: str) -> bool:
+    """Ejecuta UNA validacion (tecnica o juridica) desde el detalle del radicado.
+
+    Pulsa 'Realizar Validacion', escribe la observacion, deja Resultado APROBADO
+    y pulsa 'Aprobar'. Devuelve True si la ejecuto.
+    """
+    boton = page.get_by_role("button", name="Realizar Validación")
+    if boton.count() == 0:
+        print(f"  No hay boton 'Realizar Validacion' para {nombre} (quiza ya validada).")
+        return False
+    boton.first.click()
+    page.wait_for_timeout(700)
+    # Observaciones (textarea del modal).
+    ta = page.locator("textarea[placeholder='Observaciones opcionales...']")
+    if ta.count() == 0:
+        ta = page.locator("textarea")
+    if ta.count() > 0:
+        ta.first.fill(observacion)
+    # Resultado ya viene en APROBADO por defecto. Pulsar Aprobar.
+    aprobar = page.get_by_role("button", name="Aprobar")
+    if aprobar.count() == 0:
+        aprobar = page.locator("button", has_text="Aprobar")
+    aprobar.first.click()
+    page.wait_for_timeout(1500)
+    page.wait_for_load_state("networkidle")
+    print(f"  Validacion {nombre} APROBADA (obs: {observacion!r}).")
+    return True
+
+
+def validar_radicado(page, base_url: str, radicado: str) -> None:
+    """Emula el proceso de validacion completo de un radicado: abre su detalle y
+    aprueba la validacion tecnica y la juridica, de corrido."""
+    print(f"  [1/3] Abriendo detalle de {radicado}...")
+    if not abrir_radicado(page, base_url, radicado):
+        return
+    page.wait_for_timeout(800)
+    print("  [2/3] Validacion Tecnica...")
+    _validacion(page, "Tecnica", "Todo esta Ok")
+    page.wait_for_timeout(1200)
+    print("  [3/3] Validacion Juridica...")
+    _validacion(page, "Juridica", "Todo esta Ok en Juridica")
+    print("  Validaciones completadas. Revisa el detalle y usa 'iniciar' para el wizard.")
+    mostrar_estado(page)
+
+
+def listar_todas_paginas(page, base_url: str) -> list[str]:
+    """Recorre TODAS las paginas del listado de Asignacion (filtrado) y junta los
+    radicados de todas, ordenados de menor a mayor."""
+    ir_asignacion(page, base_url)
+    filtrar_estado(page, "Asignado")
+    todos = []
+    pagina = 1
+    while True:
+        page.wait_for_timeout(500)
+        rads = listar_radicados(page)
+        for r in rads:
+            if r not in todos:
+                todos.append(r)
+        print(f"  Pagina {pagina}: {', '.join(rads)}")
+        # Intentar ir a la pagina siguiente.
+        sig = page.get_by_role("button", name="Siguiente")
+        if sig.count() == 0:
+            sig = page.locator("button", has_text="Siguiente")
+        if sig.count() == 0 or sig.first.is_disabled():
+            break
+        try:
+            sig.first.click()
+            pagina += 1
+            page.wait_for_load_state("networkidle")
+        except Exception:
+            break
+    todos_ordenados = sorted(todos)
+    print(f"\n  TOTAL radicados Asignado ({len(todos_ordenados)}): {', '.join(todos_ordenados)}")
+    if todos_ordenados:
+        print(f"  MENOR: {todos_ordenados[0]}")
+    return todos_ordenados
 
 
 def agregar_foto(page) -> None:
@@ -405,6 +485,13 @@ def repl(page, base_url: str) -> None:
                 siguiente_radicado(page, base_url)
             elif cmd == "iniciar":
                 iniciar_tramite(page)
+            elif cmd == "validar":
+                if not arg:
+                    print("  Uso: validar <numero de radicado>")
+                else:
+                    validar_radicado(page, base_url, arg)
+            elif cmd == "listar":
+                listar_todas_paginas(page, base_url)
             elif cmd == "agregarfoto":
                 agregar_foto(page)
             elif cmd == "subirfoto":
