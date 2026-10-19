@@ -436,6 +436,11 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
   NPN `763640100000004630801000000000` (30 dígitos). Solicitante EMPRESA3. Las
   validaciones técnica y jurídica llegaron PENDIENTES; el analista las realizó
   (ambas Aprobado, observación "Todo esta Ok" / "Todo esta Ok en Juridica").
+  - **PARTICULARIDAD:** este tipo de trámite REQUIERE **Asignación de NPN ANTES del
+    wizard.** Al "Iniciar Trámite" muestra "Falta la Asignación de NPN" con botón
+    "Ir a Asignación de NPN". Hay que: cargar el shape con los predios desde el plugin
+    QGIS, asignar los NPN y **materializar** los predios en la página Asignación de NPN
+    (`/gestion-predial/asignacion-npn`). Solo después se puede abrir el wizard de 8 pasos.
 - **Rectificaciones - Errores Inscripción Catastral** (R-2026-0075, Trámite #78).
   NPN `763640100000016640901921040001` (30 dígitos, longitud correcta; posición 22 = 9,
   con edificio/piso/unidad, es unidad en PH / apartamento). Validaciones técnica y
