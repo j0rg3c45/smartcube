@@ -97,8 +97,13 @@ Flujo tecnico de un tramite (REGLA - MISMO para todos):
        buscar el menor entre TODOS los que esten en Asignado, revisando TODAS las
        paginas del listado (puede estar en la pagina 2). NO asumir el menor por lo
        visto en una sesion anterior; verificar en vivo con `radicados` / el buscador.
-     - Si la Validacion esta "Pendiente: Tecnica, Juridica", el analista hace esas
-       validaciones ANTES de iniciar. Si esta "Completa", inicia directo.
+     - Si la Validacion esta "Pendiente: Tecnica, Juridica", hacer esas validaciones
+       ANTES de iniciar (la mayoria de radicados estan Pendientes). Si esta "Completa",
+       inicia directo.
+     - Proceso de validacion (lo guia/ejecuta el agente con comandos; el usuario
+       confirma el Aprobar): abrir detalle -> boton "Realizar Validacion" (tecnica
+       azul) -> Resultado APROBADO + observacion "Todo esta Ok" -> Aprobar. Luego la
+       juridica (boton morado) igual, observacion "Todo esta Ok en Juridica" -> Aprobar.
   2. "Iniciar Tramite" -> wizard `/gestion-tramites`.
   3. Wizard de 8 pasos: Predio (foto; PREGUNTAR si desea agregar direccion; llenar
      Caracterizacion LADM: Tipo de Predio y Tipo de Derecho) -> Propietario
