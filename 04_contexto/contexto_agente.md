@@ -516,8 +516,10 @@ Arquitectura de trabajo activa:
 
 Para retomar la próxima vez:
 1. Lanzar `uv run navegador.py` y `uv run qa.py` (dos terminales). NO abrir DevTools (F12).
-2. Procesar el siguiente radicado en Asignado: el menor es **R-2026-0079** (EMPRESA46).
-   Usar el mismo flujo de 8 pasos (comando `abrir R-2026-0079` o `siguiente`).
+2. Procesar el radicado de MENOR número en Asignado. IMPORTANTE: buscar el menor real
+   entre TODAS las páginas (puede estar en la página 2), NO asumir por sesiones previas.
+   Verificar en vivo con `radicados` y el buscador. (El siguiente a procesar es
+   **R-2026-0072**.)
 
 Progreso meta: **2 de 50 radicados completos** (R-2026-0077 y R-2026-0075).
 

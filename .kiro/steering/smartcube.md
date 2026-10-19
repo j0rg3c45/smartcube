@@ -91,7 +91,12 @@ Ejecucion asistida y selectores:
 Flujo tecnico de un tramite (REGLA - MISMO para todos):
 - Ya se completaron 2 tramites de punta a punta: Efectos Registrales (R-2026-0077) y
   Rectificaciones (R-2026-0075). TODOS los tramites siguen el MISMO flujo:
-  1. Asignacion -> filtrar estado "Asignado" -> abrir detalle del radicado menor.
+  1. Asignacion -> filtrar estado "Asignado" -> abrir detalle del radicado de MENOR
+     numero.
+     - El radicado es `R-2026-XXXX`; se procesa por el numero final mas bajo. Hay que
+       buscar el menor entre TODOS los que esten en Asignado, revisando TODAS las
+       paginas del listado (puede estar en la pagina 2). NO asumir el menor por lo
+       visto en una sesion anterior; verificar en vivo con `radicados` / el buscador.
      - Si la Validacion esta "Pendiente: Tecnica, Juridica", el analista hace esas
        validaciones ANTES de iniciar. Si esta "Completa", inicia directo.
   2. "Iniciar Tramite" -> wizard `/gestion-tramites`.
