@@ -354,6 +354,14 @@ en este proyecto. Mantener solo a título informativo.
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
+### Datos de prueba usados (para NO repetir; variar en cada radicado)
+
+Cuando se rellenan predios de prueba (entorno QA), usar datos ficticios lógicos de
+Colombia y NO repetir entre radicados. Registro de los ya usados:
+- R-2026-0072: Propietario **Carlos Andres Ramirez Gomez**, CC **1130598742**,
+  Masculino, Dominio, 100%. Matrícula 370-125478. Dirección "Calle 10 J Norte # 5-20".
+  Destino Habitacional, Tipo Predio Privado.
+
 ### 8.1 Redacción técnica para el informe (hallazgos elaborados)
 
 > Textos listos para el apartado de Recomendaciones / Hallazgos Técnicos del informe final.
