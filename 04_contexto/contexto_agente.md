@@ -441,6 +441,14 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
     "Ir a Asignación de NPN". Hay que: cargar el shape con los predios desde el plugin
     QGIS, asignar los NPN y **materializar** los predios en la página Asignación de NPN
     (`/gestion-predial/asignacion-npn`). Solo después se puede abrir el wizard de 8 pasos.
+  - La pantalla **Asignación de NPN** tiene una lista "Trámites por numerar"; se
+    selecciona el trámite, se numeran sus predios (desde la geometría del topógrafo),
+    y luego se vuelve a Asignación para "Iniciar Trámite" de nuevo (ya entra al wizard).
+  - **Tipos de trámite que requieren Asignación de NPN** (vistos en "Trámites por
+    numerar"): Mutación 5a Clase - Predios Nuevos Formales / Informales, Mutación 2a
+    Clase - División Material / Segregación / Agregación, Rectificaciones - Cambio
+    Número Predial Nacional. (En "Cambio de NPN" no hay geometría: se asigna el número
+    nuevo al predio que ya existe.)
 - **Rectificaciones - Errores Inscripción Catastral** (R-2026-0075, Trámite #78).
   NPN `763640100000016640901921040001` (30 dígitos, longitud correcta; posición 22 = 9,
   con edificio/piso/unidad, es unidad en PH / apartamento). Validaciones técnica y
