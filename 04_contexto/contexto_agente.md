@@ -432,6 +432,10 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
 - **Efectos Registrales - Actualización Linderos Artículo 6.1** (R-2026-0077,
   "Mutación Integral"). Es el tipo de trámite que se está procesando en las pruebas.
 - Mutación 2a Clase - Segregación (R-2026-0089, Trámite #95).
+- **Mutación 5a Clase - Predios Nuevos Formales** (R-2026-0072, Trámite #75).
+  NPN `763640100000004630801000000000` (30 dígitos). Solicitante EMPRESA3. Las
+  validaciones técnica y jurídica llegaron PENDIENTES; el analista las realizó
+  (ambas Aprobado, observación "Todo esta Ok" / "Todo esta Ok en Juridica").
 - **Rectificaciones - Errores Inscripción Catastral** (R-2026-0075, Trámite #78).
   NPN `763640100000016640901921040001` (30 dígitos, longitud correcta; posición 22 = 9,
   con edificio/piso/unidad, es unidad en PH / apartamento). Validaciones técnica y
