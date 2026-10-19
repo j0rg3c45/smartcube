@@ -352,7 +352,27 @@ en este proyecto. Mantener solo a título informativo.
 
 | 14 | R-2026-0072 (Asignación de NPN) | Carga de geometría / topología | Al subir el archivo **GeoJSON** (geometría del predio), la plataforma NO arroja los errores de topología (solapes/traslapes con colindantes) que sí detecta por otras vías. Queda el tema de los colindantes sin ajustar/validar al cargar por GeoJSON. Riesgo: entra geometría con problemas topológicos sin alerta. TENER EN CUENTA PARA EL INFORME. | Reportado por el usuario en el flujo de Asignación de NPN de R-2026-0072. |
 
+| 15 | R-2026-0072 | Paso 1 / Número de Matrícula | El campo "Número de Matrícula" debe ser SOLO numérico (no lleva el código ORIP ni guion). Poner "370-125478" fue rechazado por la validación CUSTOM_PREDIO_CF_MATRICULA_NUMERICA; lo correcto es solo el folio (125478). Validación correcta de la plataforma. | Captura 20261019_173710. |
+| 16 | R-2026-0072 | Paso 7 / Destino vs Construcción | La plataforma valida que un predio con destino Habitacional/Comercial/Industrial DEBE tener al menos una unidad de construcción (CUSTOM_DESTINO_REQUIERE_UC). Si es un lote sin construcción, el destino debe ser tipo "Lote Urbanizado No Construido". Validación correcta. | Captura 20261019_173710. |
+
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
+
+### REGLA de coherencia: Destino Económico vs Construcción
+
+Si el predio NO tiene unidades de construcción (es un lote), el **Destino Económico NO
+puede ser "Habitacional"** (ni otro que implique edificación). Debe usarse un destino
+tipo lote, p. ej. **"Lote Urbanizado No Construido"**. La plataforma valida esta
+coherencia en el Paso 7 (Resumen) y marca error si hay destino habitacional sin
+construcción. (Al rellenar predios de prueba: si no se agrega construcción, elegir un
+destino de lote; si se agrega construcción, puede ser Habitacional/Comercial/etc.)
+
+### Mejora pendiente: automatizar pasos repetitivos del wizard
+
+El usuario quiere que los pasos repetitivos del wizard (Fuente Administrativa con datos
+de prueba, cálculo de avalúo retroactivo, navegación entre pasos) se hagan de forma
+automática. Pendiente: crear en `qa.py` comandos de alto nivel (p. ej. `fuenteadmin`,
+`avaluo <año>`) que rellenen de corrido con datos de prueba, dejando al usuario solo lo
+que varía (dirección, propietario, shape/geometría, año del retroactivo).
 
 ### Datos de prueba usados (para NO repetir; variar en cada radicado)
 
