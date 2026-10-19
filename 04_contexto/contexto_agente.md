@@ -350,6 +350,8 @@ en este proyecto. Mantener solo a título informativo.
 | 12 | R-2026-0075 | Paso 7 / Dirección estructurada | Error 3_ET_CF_112: en la dirección estructurada original "Carrera 21AS # 21A - 11 BQ 21 AP 401 SEC J 3" el campo "Nombre" del predio viene DILIGENCIADO cuando en direcciones estructuradas debe ir VACÍO (el texto lo componen las variables de vía). Dato de origen inconsistente que bloquea el trámite. | Captura 20261016_182941. Validación correcta de la plataforma. |
 | 13 | R-2026-0075 | Paso 6 / Avalúo retroactivo | La plataforma NO permite corregir/ajustar el avalúo retroactivo una vez calculado. En este caso se eligió recalcular desde 2016 y luego no dejó modificar/ajustar ese cálculo. Afecta cuando el analista necesita rehacer el retroactivo (p. ej. tras corregir datos de construcción que cambian el avalúo). Inconsistencia/limitación a confirmar. | Reportado por el usuario. Paso 6 Avalúo, R-2026-0075. |
 
+| 14 | R-2026-0072 (Asignación de NPN) | Carga de geometría / topología | Al subir el archivo **GeoJSON** (geometría del predio), la plataforma NO arroja los errores de topología (solapes/traslapes con colindantes) que sí detecta por otras vías. Queda el tema de los colindantes sin ajustar/validar al cargar por GeoJSON. Riesgo: entra geometría con problemas topológicos sin alerta. TENER EN CUENTA PARA EL INFORME. | Reportado por el usuario en el flujo de Asignación de NPN de R-2026-0072. |
+
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
 ### 8.1 Redacción técnica para el informe (hallazgos elaborados)
