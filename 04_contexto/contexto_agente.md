@@ -443,6 +443,33 @@ Colombia y NO repetir entre radicados. Registro de los ya usados:
   Masculino, Dominio, 100%. Matrícula 370-125478. Dirección "Calle 10 J Norte # 5-20".
   Destino Habitacional, Tipo Predio Privado.
 
+#### REGLA: datos sinteticos (mock data) autorizados
+
+Autorizado el uso de **datos ficticios o generados al azar (mock data)** a criterio del
+agente para TODOS los tramites, plantillas y formularios de SmartCube (entorno QA).
+Directrices obligatorias:
+
+1. **Libertad de seleccion:** el agente puede inventar o generar aleatoriamente nombres
+   de personas, documentos de identidad ficticios, matriculas inmobiliarias,
+   direcciones, numeros de radicado, observaciones, etc. Si se usan librerias de
+   generacion (p. ej. `Faker` con locale `es_CO`), configurarlas para producir valores
+   realistas acordes al tipo de campo.
+2. **No repeticion (unicidad por tramite):** NUNCA repetir datos entre un tramite y
+   otro. Cada registro, predio o solicitud lleva un conjunto de valores unico. Mantener
+   un registro/set interno durante la ejecucion para garantizar que ningun dato clave
+   generado colisione con los de tramites anteriores (IDs, nombres consecutivos,
+   radicados, matriculas, etc.). Ir anotando lo usado en la lista de arriba.
+3. **Cumplimiento de formato y estructura:** aunque los valores sean ficticios, deben
+   respetar los formatos exigidos por la plataforma:
+   - **NPN**: 30 digitos numericos exactos.
+   - **Matricula inmobiliaria**: solo numerica (folio, sin codigo ORIP ni guion).
+   - **Documentos de identidad**: numericos, longitud plausible para Colombia.
+   - **Fechas**: formato valido; anios de construccion dentro de rango (1500-2026).
+   - **Decimales/miles, textos**: longitudes y tipos validos, sin espacios ni
+     caracteres residuales.
+4. **Coherencia de negocio:** respetar las reglas ya documentadas (p. ej. destino de
+   lote sin construccion no puede ser Habitacional; propietario unico al 100%).
+
 ### 8.1 Redacción técnica para el informe (hallazgos elaborados)
 
 > Textos listos para el apartado de Recomendaciones / Hallazgos Técnicos del informe final.
@@ -698,4 +725,4 @@ sigue guardada en el perfil).
 
 ---
 
-_Última actualización: 16/10/2026_
+_Última actualización: 20/10/2026_
