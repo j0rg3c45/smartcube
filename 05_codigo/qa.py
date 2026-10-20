@@ -249,10 +249,18 @@ def listar_todas_paginas(page, base_url: str) -> list[str]:
             sig = page.locator("button", has_text="Siguiente")
         if sig.count() == 0 or sig.first.is_disabled():
             break
+        # Guardar el conjunto actual para detectar cuando cambie la pagina.
+        set_antes = set(rads)
         try:
             sig.first.click()
             pagina += 1
             page.wait_for_load_state("networkidle")
+            # Esperar hasta 5s a que la tabla cambie (conjunto distinto al anterior).
+            for _ in range(10):
+                page.wait_for_timeout(500)
+                nuevos = set(listar_radicados(page))
+                if nuevos and nuevos != set_antes:
+                    break
         except Exception:
             break
     todos_ordenados = sorted(todos)
