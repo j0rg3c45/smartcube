@@ -191,10 +191,13 @@ def leer_datos_detalle(page) -> dict:
         texto = page.locator("body").inner_text()
     except Exception:
         texto = ""
-    # Tipo de tramite: linea con "Mutacion"/"Rectificaciones"/"Efectos"
-    for linea in texto.splitlines():
+    # Tipo de tramite: linea bajo "Trámite #NN" o que contenga palabras clave.
+    claves = ("Mutación", "Rectificaciones", "Efectos", "Mixta")
+    lineas = texto.splitlines()
+    for idx, linea in enumerate(lineas):
         l = linea.strip()
-        if any(k in l for k in ("Mutación", "Rectificaciones", "Efectos")) and "-" in l:
+        if any(k in l for k in claves) and len(l) > 10:
+            # Quitar el analista (despues de —) si lo trae.
             datos["tipo_tramite"] = l.split("—")[0].strip()
             break
     # NPN: primera secuencia de 30 digitos
@@ -399,12 +402,12 @@ def main() -> None:
         for r in radicados:
             procesar_radicado(page, cfg["url"], r, rep, args.dry_run)
     finally:
+        rep.log("Fin. El navegador sigue abierto.")
         rep.cerrar()
         try:
             p.stop()
         except Exception:
             pass
-        rep.log("Fin. El navegador sigue abierto.")
 
 
 if __name__ == "__main__":

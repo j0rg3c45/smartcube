@@ -375,6 +375,30 @@ automática. Pendiente: crear en `qa.py` comandos de alto nivel (p. ej. `fuentea
 `avaluo <año>`) que rellenen de corrido con datos de prueba, dejando al usuario solo lo
 que varía (dirección, propietario, shape/geometría, año del retroactivo).
 
+### Validador automatico en lote (validador_qa.py)
+
+Script autonomo `05_codigo/validador_qa.py` que valida tecnica+juridica de varios
+radicados de corrido (se conecta por CDP al navegador abierto, busca cada radicado por
+el buscador, abre detalle, valida NPN y aprueba ambas validaciones). Genera reporte CSV
++ log en `05_codigo/reportes/` y capturas en `capturas/`.
+- Uso: `uv run validador_qa.py R-2026-XXXX R-2026-YYYY ...` (o `--dry-run` para probar).
+- Dry-run del 19/10/2026 OK: proceso los 9 radicados pendientes, leyo NPN (todos 30
+  digitos) y estados correctamente.
+
+### Tipos de trámite (ampliado, dry-run 19/10/2026)
+
+- R-2026-0062: Mutación 4a Clase - Revisión Avalúo. NPN 763640100000000030012000000000.
+- R-2026-0067: Mutación 2a Clase - División Material. NPN 763640100000011890106000000000.
+- R-2026-0079: **Mixta**: Rectificaciones - Errores Inscripción Catastral → Mutación 1a
+  Clase - Cambio Propietario (trámite combinado). NPN 763640002000000030813800004806.
+- R-2026-0081: Mutación 1a Clase - Cambio Propietario. NPN 763640002000000020804800001140.
+- R-2026-0082: Mutación 1a Clase - Cambio Propietario. NPN 763640100000017960801800000059.
+- R-2026-0084: Mutación 3a Clase - Cambio Destino Económico. NPN 763640100000007701905903030005.
+- R-2026-0085: Rectificaciones - Errores Inscripción Catastral. NPN 763640100000007730223000000000.
+- R-2026-0086: (tipo no leido en dry-run). NPN 763640001000000070294500000015.
+- R-2026-0087: Rectificaciones - Cambio Número Predial Nacional. NPN 763640100000011890016000000000.
+- R-2026-0061: Mutación 3a Clase - Cambio Área Construida (validado manual). NPN de 32 dígitos (revisar).
+
 ### Listado de radicados Asignado (19/10/2026)
 
 13 radicados en Asignado (2 páginas). Ordenados de menor a mayor:
