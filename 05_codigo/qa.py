@@ -705,51 +705,75 @@ def fuente_administrativa(page, semilla: str = "") -> None:
     if total < 7:
         print(f"  Solo hay {total} desplegables; ¿estas en el Paso 5 (Fuente Administrativa)?")
         return
+    # Esperar a que los desplegables terminen de poblar sus opciones (carga async).
+    # Sin esto, si se corre muy rapido, los <option> aun no existen y no se llena nada.
+    for _ in range(20):  # hasta ~6 s
+        try:
+            op0 = selects.nth(0).locator("option").count()
+            op2 = selects.nth(2).locator("option").count()
+            if op0 >= 2 and op2 >= 2:
+                break
+        except Exception:
+            pass
+        page.wait_for_timeout(300)
+
+    def _es_placeholder(t: str) -> bool:
+        tl = t.lower()
+        return (tl == "" or tl.startswith("seleccione") or tl.startswith("selecione")
+                or tl.startswith("—") or t.strip() == "—")
 
     def elegir(idx: int, etiqueta: str | None, contiene: str | None = None):
         sel = selects.nth(idx)
         opciones = sel.locator("option")
         n = opciones.count()
-        # Construir lista de textos de opciones.
         textos = [opciones.nth(j).inner_text().strip() for j in range(n)]
         objetivo = None
+        # 1) Coincidencia exacta o por prefijo con la etiqueta preferida.
         if etiqueta:
-            # Coincidencia exacta o por prefijo.
             for t in textos:
                 if t == etiqueta or t.startswith(etiqueta):
                     objetivo = t
                     break
+        # 2) Coincidencia por 'contiene'.
         if objetivo is None and contiene:
             for t in textos:
                 if contiene.lower() in t.lower():
                     objetivo = t
                     break
+        # 3) FALLBACK ROBUSTO: primera opcion valida (no placeholder).
         if objetivo is None:
-            # Ultimo recurso: primera opcion que no sea el placeholder.
             for t in textos:
-                if not t.lower().startswith("seleccione"):
+                if not _es_placeholder(t):
                     objetivo = t
                     break
         if objetivo is None:
-            print(f"    [select {idx}] sin opcion valida.")
+            print(f"    [select {idx}] sin opcion valida (solo placeholder).")
             return False
+        # Intento por etiqueta y, si falla, por indice de la opcion elegida.
         try:
             sel.select_option(label=objetivo)
             print(f"    [select {idx}] = {objetivo!r}")
             return True
-        except Exception as e:
-            print(f"    [select {idx}] error: {type(e).__name__}")
-            return False
+        except Exception:
+            try:
+                idx_op = textos.index(objetivo)
+                sel.select_option(index=idx_op)
+                print(f"    [select {idx}] = {objetivo!r} (por indice)")
+                return True
+            except Exception as e:
+                print(f"    [select {idx}] error: {type(e).__name__}")
+                return False
 
     print("  Llenando Fuente Administrativa (Paso 5) con datos sinteticos...")
-    elegir(0, "Escritura Pública")
-    elegir(1, "Disponible")
-    elegir(2, "A-Tradicion")
-    elegir(3, "Notaria")
-    elegir(4, "Valle del Cauca")
+    _ok = 0
+    _ok += 1 if elegir(0, "Escritura Pública") else 0
+    _ok += 1 if elegir(1, "Disponible") else 0
+    _ok += 1 if elegir(2, "A-Tradicion") else 0
+    _ok += 1 if elegir(3, "Notaria") else 0
+    _ok += 1 if elegir(4, "Valle del Cauca") else 0
     page.wait_for_timeout(900)  # dar tiempo a que cargue el municipio
-    elegir(5, None, contiene="Jamund")
-    elegir(6, None)  # primera naturaleza juridica valida
+    _ok += 1 if elegir(5, None, contiene="Jamund") else 0
+    _ok += 1 if elegir(6, None) else 0  # primera naturaleza juridica valida
 
     # Campos de texto variables (unicos por tramite).
     num_escritura = str(random.randint(1000, 9999))
@@ -815,7 +839,8 @@ def fuente_administrativa(page, semilla: str = "") -> None:
     except Exception:
         pass
 
-    print("  Paso 5 rellenado. Revisa en pantalla y avanza con 'continuar'.")
+    print(f"  Paso 5 rellenado ({_ok}/7 desplegables). Revisa en pantalla y avanza con 'continuar'.")
+    return _ok
 
 
 def diagnosticar_paso(page) -> None:

@@ -208,6 +208,11 @@ def escribir_resumen(radicado: str, info: dict, log) -> None:
         lineas.append("   Propietario:     (paso solo lectura o no editable en este tramite)")
     if info.get("direccion"):
         lineas.append(f"   Direccion:       {info['direccion']}")
+    if info.get("fuente_admin"):
+        lineas.append(f"   Fuente admin.:   {info['fuente_admin']}")
+    if info.get("avaluo"):
+        lineas.append(f"   Avaluo:          {info['avaluo']}")
+    lineas.append(f"   Pasos recorridos:{' ' + info.get('pasos_completados', '-')}")
     lineas += [
         "",
         "3. PENDIENTE DE INTERVENCION CARTOGRAFICA (usuario)",
@@ -337,11 +342,26 @@ def procesar(page, base_url: str, radicado: str, log) -> dict:
             pendiente_carto.append("Construcciones (poligono de la UC)")
             pasos_ok.append("4-Construccion(sin geometria)")
         elif n == 5:
+            # Llenar y VERIFICAR que quedo completa antes de avanzar. Reintenta 1 vez.
+            ok = 0
             try:
-                qa.fuente_administrativa(page, radicado)
-                pasos_ok.append("5-FuenteAdmin")
+                ok = qa.fuente_administrativa(page, radicado)
+                if ok < 7:
+                    log(f"    Fuente Administrativa incompleta ({ok}/7); reintentando...")
+                    page.wait_for_timeout(1500)
+                    ok = qa.fuente_administrativa(page, radicado)
             except Exception as e:
                 info.setdefault("observaciones", f"FuenteAdmin: {type(e).__name__}")
+            pasos_ok.append(f"5-FuenteAdmin({ok}/7)")
+            info["fuente_admin"] = f"{ok}/7 desplegables + numeros/fechas/observacion"
+            if ok < 7:
+                # No avanzar con la seccion incompleta: detener para revision manual.
+                info["estado_final"] = (f"Detenido en Paso 5 (Fuente Administrativa): solo "
+                                        f"{ok}/7 desplegables llenados tras reintento.")
+                info["observaciones"] = (f"Fuente Administrativa incompleta ({ok}/7). "
+                                         f"No se avanzo para no dejar datos faltantes.")
+                log(f"    DETENIDO en Paso 5: Fuente Administrativa {ok}/7.")
+                break
         elif n == 6:
             # Avaluo: calcular el retroactivo del anio configurado (por defecto 2025)
             # SOLO en los radicados que lleguen hasta este paso.
