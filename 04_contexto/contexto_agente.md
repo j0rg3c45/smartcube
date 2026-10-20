@@ -375,6 +375,32 @@ automática. Pendiente: crear en `qa.py` comandos de alto nivel (p. ej. `fuentea
 `avaluo <año>`) que rellenen de corrido con datos de prueba, dejando al usuario solo lo
 que varía (dirección, propietario, shape/geometría, año del retroactivo).
 
+### REGLA: separacion de roles alfanumerico (agente) vs cartografico (usuario)
+
+Division de tareas acordada para procesar tramites:
+
+- **Agente (autonomo, pasos alfanumericos 1 a 6):** conduce el avance por las etapas del
+  tramite, diligencia TODOS los formularios, campos de texto, fechas, selectores,
+  checklists y metadatos con datos sinteticos no repetidos, y gestiona confirmaciones,
+  guardados de fase y transiciones de estado. El agente da los comandos exactos a correr
+  (el usuario solo los ejecuta en la terminal y pega la salida; no decide ni digita
+  campos alfanumericos).
+- **Usuario (unica intervencion, componente GIS/cartografico):** terreno (poligonos de
+  predio) y construcciones los gestiona el usuario manualmente en el visor SIG.
+- **Punto de pausa cartografico:** cuando el flujo llegue a modificar/confirmar
+  geometrias de terreno o construcciones, el agente DETIENE la ejecucion y notifica
+  textualmente: "Paso cartografico alcanzado en el tramite [ID/Tipo]. Queda en espera de
+  tu intervencion manual sobre terreno/construcciones." Espera la palabra clave del
+  usuario (`listo` o `continuar`) para retomar y automatizar los pasos restantes.
+- **Errores en pasos alfanumericos:** ante bloqueo o error de UI, el agente toma
+  captura, genera log del campo/paso donde ocurrio y lo reporta al usuario.
+
+> NOTA de arquitectura: el agente NO controla el navegador directamente. La
+> automatizacion corre con Playwright (`navegador.py` + `qa.py`); el usuario ejecuta los
+> comandos que el agente le pasa. "Autonomo" = el agente conduce cada paso y provee el
+> comando/datos; el usuario es el ejecutor. Lo unico que el usuario decide es la parte
+> cartografica.
+
 ### Validador automatico en lote (validador_qa.py)
 
 Script autonomo `05_codigo/validador_qa.py` que valida tecnica+juridica de varios
