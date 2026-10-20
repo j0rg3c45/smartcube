@@ -13,8 +13,10 @@ venv/
 # Playwright: perfil persistente (contiene la sesion/cookies) y capturas
 05_codigo/.pw-profile/
 05_codigo/capturas/
+05_codigo/reportes/
 .pw-profile/
 capturas/
+reportes/
 
 # Datos sensibles / pesados
 03_tramites/
