@@ -375,6 +375,16 @@ automática. Pendiente: crear en `qa.py` comandos de alto nivel (p. ej. `fuentea
 `avaluo <año>`) que rellenen de corrido con datos de prueba, dejando al usuario solo lo
 que varía (dirección, propietario, shape/geometría, año del retroactivo).
 
+### Listado de radicados Asignado (19/10/2026)
+
+13 radicados en Asignado (2 páginas). Ordenados de menor a mayor:
+`0057, 0061, 0062, 0067, 0079, 0081, 0082, 0084, 0085, 0086, 0087, 0088, 0089`.
+- **R-2026-0057** (EMPRESA1, NIT 899764890): Validación **Completa** → inicia directo.
+- Los demás en su mayoría "Pendiente: Técnica, Jurídica" → hacer validaciones antes.
+- NOTA: el comando `listar` no lee bien la página 2 (el botón "Siguiente" de
+  paginación no responde al selector; hay varios "Siguiente" en la app). Pendiente
+  arreglar el selector de paginación.
+
 ### Datos de prueba usados (para NO repetir; variar en cada radicado)
 
 Cuando se rellenan predios de prueba (entorno QA), usar datos ficticios lógicos de
