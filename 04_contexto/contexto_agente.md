@@ -380,6 +380,38 @@ automática. Pendiente: crear en `qa.py` comandos de alto nivel (p. ej. `fuentea
 `avaluo <año>`) que rellenen de corrido con datos de prueba, dejando al usuario solo lo
 que varía (dirección, propietario, shape/geometría, año del retroactivo).
 
+### REGLA: procesamiento en LOTE + resumen.txt por tramite
+
+Modo de trabajo en lote sobre los radicados en estado Asignado (pendientes):
+
+- **Alcance por tramite:** avanzar y completar autonomamente TODOS los campos editables
+  de los pasos 1 a 6 (datos, formularios, desplegables, metadatos). En los pasos
+  cartograficos (Terreno paso 3, Construccion paso 4) diligenciar solo lo alfanumerico
+  permitido y dejar preparado el punto para que el USUARIO cargue/ajuste la geometria.
+  El Paso 7 es Resumen/consolidacion.
+- **Datos al azar NO repetidos:** nombres, apellidos, documentos ficticios, direcciones,
+  numeros de documento fuente y observaciones aleatorios. Alternar nombres masculinos y
+  femeninos. PROHIBIDO duplicar titulares, nombres completos o numeros de identificacion
+  entre tramites. Mantener registro de lo usado (lista "Datos de prueba usados").
+- **Coherencia y validez:** aunque ficticios, los datos deben tener logica catastral
+  (fechas en rango valido, NPN 30 digitos, matricula solo numerica, tipo de documento
+  acorde a persona natural/juridica).
+- **ENTREGABLE por tramite:** generar `resumen.txt` (o `resumen_<RADICADO>.txt`) dentro
+  de la carpeta local del tramite (`03_tramites/NN_tramite_<RADICADO>/`) con:
+  1. Identificacion: radicado, ID del tramite (Tramite #), tipo de tramite exacto.
+  2. Datos ingresados: titulares/propietarios generados, documentos ficticios, y datos
+     principales cargados de los pasos 1 a 6.
+  3. Puntos pendientes de intervencion: que informacion cartografica (terreno o
+     construcciones) queda pendiente para que el usuario la cargue/ajuste.
+  4. Estado en plataforma: estado exacto en que queda el tramite.
+
+> NOTA operativa: el componente cartografico (Terreno/Construcciones) es RESERVA del
+> usuario. Como el Terreno (paso 3) va antes de Fuente Administrativa (5) y Avaluo (6),
+> el alcance alfanumerico autonomo por tramite llega hasta el punto donde la plataforma
+> exige geometria; los pasos posteriores a la geometria se completan despues de que el
+> usuario cargue el poligono. Algunos tipos (Mutacion 2a/5a, Cambio de NPN) exigen
+> Asignacion de NPN (geometria) ANTES del wizard.
+
 ### REGLA: separacion de roles alfanumerico (agente) vs cartografico (usuario)
 
 Division de tareas acordada para procesar tramites:
@@ -419,6 +451,46 @@ el buscador, abre detalle, valida NPN y aprueba ambas validaciones). Genera repo
   nuevos pendientes que vayan apareciendo (no repite los ya hechos).
 - Dry-run del 19/10/2026 OK: proceso los 9 radicados pendientes, leyo NPN (todos 30
   digitos) y estados correctamente.
+
+### Procesamiento en LOTE del flujo alfanumerico (lote_qa.py)
+
+Script `05_codigo/lote_qa.py` que procesa en lote el flujo alfanumerico de los tramites
+en Asignado. Se conecta por CDP al navegador abierto (reutiliza funciones de `qa.py`),
+y por cada radicado: busca, abre detalle, lee tipo/ID/NPN, valida tecnica+juridica si
+esta Pendiente, inicia el wizard y AVANZA lo mas lejos posible llenando lo alfanumerico
+editable de cada paso.
+
+- **Avance maximo:** si la plataforma deja continuar sin geometria, el script avanza
+  hasta el Paso 7 (Resumen). Si un paso cartografico (Terreno paso 3 / Construccion
+  paso 4) EXIGE geometria para continuar, se detiene limpio ahi y lo marca como
+  pendiente de intervencion del usuario.
+- **Pasos que llena:** Paso 1 (caracterizacion LADM si editable), Paso 2 (propietario:
+  registra persona sintetica unica), Paso 5 (Fuente Administrativa completa), Paso 6
+  (Avaluo retroactivo del anio configurado, por defecto **2025**, SOLO en los que
+  lleguen a ese paso).
+- **Datos sinteticos NO repetidos:** generador con sets de unicidad (nombres completos
+  y documentos) precargados con el historico; alterna masculino/femenino. Fechas y
+  numeros de documento fuente aleatorios por tramite.
+- **Entregable por tramite:** `resumen_<RADICADO>.txt` en la carpeta local del tramite
+  (`03_tramites/NN_tramite_<RADICADO>/`) con identificacion, datos ingresados, pendiente
+  cartografico y estado final. Ademas un log del lote en `05_codigo/reportes/`.
+- **Excluidos por defecto:** R-2026-0057 (bloqueado por bug IGAC).
+- **Conservador:** si un tramite falla o tiene algo inesperado (modal, selector), lo
+  anota y sigue con el siguiente; no fuerza acciones de guardado/aprobacion criticas
+  mas alla de validar/iniciar.
+
+Uso:
+    uv run python navegador.py            (terminal 1; sesion iniciada; NO DevTools)
+    # PRUEBA con 1 radicado ANTES del lote completo (REGLA):
+    uv run python lote_qa.py --radicados R-2026-0061
+    # Lote completo (tras validar la prueba):
+    uv run python lote_qa.py
+    # Opcionales: --anio 2024 | --excluir R-2026-XXXX | --semilla <texto>
+
+> REGLA: SIEMPRE hacer una PRUEBA con 1 solo radicado antes de lanzar el lote completo,
+> para validar que el flujo y los selectores funcionan y no dejar varios tramites a
+> medias. Cerrar el REPL `qa.py` mientras corre el lote (ambos usan el mismo navegador);
+> el navegador debe seguir abierto.
 
 #### PASO A PASO para validar (correr el validador)
 
