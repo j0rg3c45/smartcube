@@ -382,8 +382,34 @@ radicados de corrido (se conecta por CDP al navegador abierto, busca cada radica
 el buscador, abre detalle, valida NPN y aprueba ambas validaciones). Genera reporte CSV
 + log en `05_codigo/reportes/` y capturas en `capturas/`.
 - Uso: `uv run validador_qa.py R-2026-XXXX R-2026-YYYY ...` (o `--dry-run` para probar).
+- **`--todos`**: detecta y valida TODOS los Pendientes recorriendo TODAS las paginas
+  del listado (asi toma radicados nuevos sin lista manual).
+- **`--vigilar --intervalo N`**: modo continuo, revisa cada N segundos y valida los
+  nuevos pendientes que vayan apareciendo (no repite los ya hechos).
 - Dry-run del 19/10/2026 OK: proceso los 9 radicados pendientes, leyo NPN (todos 30
   digitos) y estados correctamente.
+
+#### PASO A PASO para validar (correr el validador)
+
+Cuando haya que validar radicados (tecnica + juridica), el agente DA este paso a paso:
+
+1. Verificar que el navegador este activo (CDP puerto 9222). Si no, lanzarlo:
+   - Terminal 1: `cd C:\Users\Jorge\Desktop\Smartcube\05_codigo` y `uv run navegador.py`
+     (dejar abierta; iniciar sesion una vez; NO abrir DevTools / F12).
+2. En Terminal 2: `cd C:\Users\Jorge\Desktop\Smartcube\05_codigo`.
+3. (Recomendado) Prueba segura, no aprueba nada:
+   `uv run validador_qa.py --todos --dry-run`
+   -> revisar el log en `05_codigo/reportes/` (debe listar los pendientes de TODAS
+      las paginas).
+4. Ejecucion real (aprueba tecnica + juridica de todos los pendientes):
+   `uv run validador_qa.py --todos`
+5. Para dejarlo vigilando y que valide los nuevos que aparezcan:
+   `uv run validador_qa.py --vigilar --intervalo 120`  (Ctrl+C para detener).
+6. Tambien se puede validar una lista puntual:
+   `uv run validador_qa.py R-2026-0062 R-2026-0067 ...`
+
+Resultados: reporte CSV + log en `05_codigo/reportes/`, capturas en `capturas/`.
+Durante la corrida: NO usar el navegador ni abrir DevTools.
 
 ### Tipos de trámite (ampliado, dry-run 19/10/2026)
 
