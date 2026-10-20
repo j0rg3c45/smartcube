@@ -33,6 +33,27 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
     validar <R-...>       AUTO: abre detalle y aprueba validacion tecnica + juridica
 
   Wizard "Gestion de Tramites" (parte tecnica):
+    paso                  diagnostica el paso actual: si es automatizable (el
+                          agente lo llena) o manual (el usuario debe actuar)
+    puntosmasivo <TP>|<Metodo>|<PC>
+                          Paso 3: llena en bloque TODA la tabla de Puntos
+                          (Tipo de punto / Metodo / Punto de control) de corrido.
+                          Ej: puntosmasivo Mojón | Método Directo | Apoyo
+    linderosmasivo <ruta.geojson>
+                          Paso 3 (pestaña Linderos): llena en bloque los 55 linderos.
+                          La ORIENTACION se calcula REAL desde el poligono (azimut de
+                          cada segmento); 'Colinda con' y NPN/nombre son sinteticos
+                          coherentes. Ej: linderosmasivo C:\\...\\predio.geojson
+    fuenteadmin [semilla] Paso 5: rellena TODA la Fuente Administrativa con datos
+                          sinteticos (tipo fuente, adquisicion, ente, depto/muni,
+                          numeros y fechas). La semilla (p.ej. el radicado) fija la
+                          aleatoriedad. Ej: fuenteadmin R-2026-0057
+    avaluo <anio>         Paso 6: elige la vigencia del retroactivo y pulsa 'Calcular
+                          retroactivo' automaticamente. Ej: avaluo 2025
+    caracterizacion [TP]|[TD]
+                          Paso 1: llena la Caracterizacion LADM (Tipo de Predio /
+                          Tipo de Derecho). Def: Privado | Dominio.
+                          Ej: caracterizacion Privado | Dominio
     agregarfoto           pulsa '+ Agregar foto' (opcional)
     subirfoto <ruta>      carga un archivo de imagen
     continuar             pulsa 'Continuar' para avanzar de paso
@@ -268,6 +289,571 @@ def listar_todas_paginas(page, base_url: str) -> list[str]:
     if todos_ordenados:
         print(f"  MENOR: {todos_ordenados[0]}")
     return todos_ordenados
+
+
+# --- Diagnostico de paso del wizard (que es automatizable y que es manual) ---
+
+# Mapa de los 8 pasos del wizard. Para cada paso: nombre, naturaleza y accion.
+#   naturaleza: 'auto'   = el agente lo rellena/avanza (alfanumerico o solo lectura)
+#               'manual' = requiere intervencion del usuario (cartografico GIS)
+WIZARD_PASOS = {
+    1: {"nombre": "PREDIO",
+        "naturaleza": "auto",
+        "detalle": "Datos del predio (codificacion NPN, matricula, destino, "
+                   "caracterizacion LADM). Suele ser solo lectura. Opcional: foto "
+                   "del predio (la sube el USUARIO manualmente)."},
+    2: {"nombre": "PROPIETARIO",
+        "naturaleza": "auto",
+        "detalle": "Propietarios del predio. En Efectos Registrales es SOLO LECTURA "
+                   "(no editable). En Rectificaciones es EDITABLE (complementar datos "
+                   "faltantes y % participacion con datos sinteticos)."},
+    3: {"nombre": "TERRENO",
+        "naturaleza": "manual",
+        "detalle": "CARTOGRAFICO. Geometria del terreno (shape/GeoJSON), puntos y "
+                   "linderos. Lo gestiona el USUARIO en el visor SIG: subir/conservar "
+                   "shape, describir linderos (orientacion, colinda con, NPN) y Guardar."},
+    4: {"nombre": "CONSTRUCCION",
+        "naturaleza": "manual",
+        "detalle": "CARTOGRAFICO/MIXTO. Unidades de construccion y su poligono (altura). "
+                   "Preguntar al usuario si el predio tiene construccion. Si tiene, el "
+                   "USUARIO carga el poligono; los datos alfanumericos de la UC (area, "
+                   "calificacion, anio, avaluo) los puede completar el agente."},
+    5: {"nombre": "FUENTE ADMINISTRATIVA",
+        "naturaleza": "auto",
+        "detalle": "Formulario alfanumerico (fuente administrativa del acto). Lo rellena "
+                   "el agente con datos sinteticos."},
+    6: {"nombre": "AVALUO",
+        "naturaleza": "auto",
+        "detalle": "Calculo de avaluo retroactivo. El agente PREGUNTA al usuario desde "
+                   "que anio recalcular y luego ejecuta el calculo."},
+    7: {"nombre": "RESUMEN",
+        "naturaleza": "auto",
+        "detalle": "Validaciones finales (topologia, reglas de negocio). Deben quedar en "
+                   "0 errores. Si hay errores, se corrigen y se re-valida."},
+    8: {"nombre": "BORRADOR RESOLUCION",
+        "naturaleza": "auto",
+        "detalle": "Editor del borrador + vista previa PDF. Luego 'Pasar a calidad'."},
+}
+
+
+def detectar_paso(page) -> int | None:
+    """Detecta el numero de paso activo del wizard (1..8) leyendo el stepper.
+
+    El paso activo tiene su etiqueta con clase 'text-primary'. Devuelve el numero
+    o None si no se puede determinar.
+    """
+    import re
+    # Buscar etiquetas del tipo "N. NOMBRE" marcadas como activas (text-primary).
+    try:
+        activos = page.locator("span.text-primary")
+        for i in range(activos.count()):
+            t = activos.nth(i).inner_text().strip()
+            m = re.match(r"\s*(\d)\.\s", t)
+            if m:
+                return int(m.group(1))
+    except Exception:
+        pass
+    # Respaldo: buscar el encabezado "N. NOMBRE" visible como titulo del paso.
+    try:
+        cuerpo = page.locator("body").inner_text()
+        for n, info in WIZARD_PASOS.items():
+            if re.search(rf"\b{n}\.\s*{info['nombre'].split()[0]}", cuerpo, re.I):
+                # No es determinista por si varios aparecen; se deja como ultimo recurso.
+                pass
+    except Exception:
+        pass
+    return None
+
+
+def puntos_masivo(page, tipo_punto: str, metodo: str, punto_control: str) -> None:
+    """Llena en bloque la tabla de Puntos del Paso 3 (Terreno).
+
+    La tabla tiene, por cada punto, 3 <select> consecutivos en la pagina:
+      posicion %3==0 -> Tipo de punto (p. ej. 'Mojon')
+      posicion %3==1 -> Metodo        (p. ej. 'Metodo Directo')
+      posicion %3==2 -> Punto de control (p. ej. 'Apoyo')
+    Recorre TODOS los <select> y aplica el valor que corresponde a su columna,
+    saltando los que ya tengan un valor distinto de vacio (no sobrescribe).
+    """
+    selects = page.locator("select")
+    total = selects.count()
+    if total == 0:
+        print("  No hay desplegables en la pagina. ¿Estas en el Paso 3 (Puntos)?")
+        return
+    if total % 3 != 0:
+        print(f"  AVISO: {total} desplegables no es multiplo de 3; se asume patron "
+              f"Tipo/Metodo/Control de todas formas.")
+    valores = {0: tipo_punto, 1: metodo, 2: punto_control}
+    filas = total // 3
+    print(f"  Llenando {filas} filas de Puntos ({total} desplegables) de corrido...")
+    print(f"    Tipo de punto   = {tipo_punto!r}")
+    print(f"    Metodo          = {metodo!r}")
+    print(f"    Punto de control= {punto_control!r}")
+    hechos = 0
+    saltados = 0
+    errores = 0
+    for i in range(total):
+        col = i % 3
+        valor = valores[col]
+        sel = selects.nth(i)
+        try:
+            # No sobrescribir si ya tiene un valor elegido.
+            actual = sel.input_value()
+            if actual not in ("", None):
+                saltados += 1
+                continue
+            sel.select_option(label=valor)
+            hechos += 1
+            # Pausa breve cada cierto numero para no saturar la SPA.
+            if i % 15 == 0:
+                page.wait_for_timeout(120)
+        except Exception as e:
+            errores += 1
+            if errores <= 5:
+                print(f"    [fila ~{i//3 + 1}, col {col}] no se pudo: {type(e).__name__}")
+    print(f"  Listo. Aplicados: {hechos} | ya tenian valor: {saltados} | errores: {errores}")
+    print("  Revisa el aviso de filas por describir; usa 'cap' para confirmar.")
+
+
+def _orientaciones_desde_geojson(ruta: str) -> list[str]:
+    """Calcula la orientacion cardinal (Norte/Sur/Este/Oeste) de cada lindero del
+    poligono, a partir del azimut del segmento entre vertices consecutivos.
+
+    Da coherencia geografica: la orientacion de cada lado es la real del terreno.
+    Devuelve [] si no puede leer el archivo.
+    """
+    import json
+    import math
+    archivo = Path(ruta.strip().strip('"'))
+    if not archivo.exists():
+        print(f"  No existe el GeoJSON: {archivo}")
+        return []
+    try:
+        data = json.loads(archivo.read_text(encoding="utf-8"))
+        geom = data["features"][0]["geometry"]
+        # Soporta Polygon y MultiPolygon: tomar el primer anillo exterior.
+        if geom["type"] == "MultiPolygon":
+            coords = geom["coordinates"][0][0]
+        else:
+            coords = geom["coordinates"][0]
+    except Exception as e:
+        print(f"  No se pudo leer la geometria: {type(e).__name__}: {e}")
+        return []
+
+    def azimut(lon1, lat1, lon2, lat2):
+        latm = math.radians((lat1 + lat2) / 2)
+        dx = (lon2 - lon1) * math.cos(latm)
+        dy = (lat2 - lat1)
+        return (math.degrees(math.atan2(dx, dy)) + 360) % 360
+
+    def cardinal(az):
+        if az >= 315 or az < 45:
+            return "Norte"
+        if az < 135:
+            return "Este"
+        if az < 225:
+            return "Sur"
+        return "Oeste"
+
+    orient = []
+    n = len(coords) - 1  # el ultimo vertice repite el primero
+    for i in range(n):
+        lon1, lat1 = coords[i][0], coords[i][1]
+        lon2, lat2 = coords[i + 1][0], coords[i + 1][1]
+        orient.append(cardinal(azimut(lon1, lat1, lon2, lat2)))
+    return orient
+
+
+def linderos_masivo(page, ruta_geojson: str) -> None:
+    """Llena en bloque la tabla de Linderos del Paso 3.
+
+    Por cada lindero hay 2 <select> consecutivos en la pagina:
+      posicion %2==0 -> Orientacion (Norte/Sur/Este/Oeste) -> se usa la REAL del
+                        poligono (azimut del segmento).
+      posicion %2==1 -> Colinda con (Predio/Via/Rio/Zona comun/Otro) -> aleatorio
+                        coherente rural (mayoria Predio).
+    Ademas rellena el campo de texto 'NPN o nombre del colindante' de cada fila con
+    un valor sintetico coherente con el tipo de colindancia.
+    No sobrescribe desplegables que ya tengan valor.
+    """
+    import random
+
+    orientaciones = _orientaciones_desde_geojson(ruta_geojson)
+    if not orientaciones:
+        print("  Sin orientaciones: no se puede continuar. Verifica la ruta del GeoJSON.")
+        return
+
+    selects = page.locator("select")
+    total = selects.count()
+    if total == 0:
+        print("  No hay desplegables. ¿Estas en la pestaña Linderos del Paso 3?")
+        return
+    filas = total // 2
+    if filas != len(orientaciones):
+        print(f"  AVISO: {filas} linderos en pantalla vs {len(orientaciones)} calculados "
+              f"del poligono. Se usara el minimo y se continua.")
+    nfilas = min(filas, len(orientaciones))
+
+    # Colindancias coherentes rural: mayoria Predio, algunos Via/Rio.
+    tipos = ["Predio"] * 7 + ["Vía", "Río", "Otro"]
+    # Nombres sinteticos para el campo de texto segun el tipo.
+    nombres_via = ["Vía Veredal El Carmen", "Camino Real La Esperanza",
+                   "Vía Terciaria Potrerillo"]
+    nombres_rio = ["Quebrada La Honda", "Río Claro", "Zanjón El Guabo"]
+
+    def npn_sintetico():
+        # 30 digitos: usa el prefijo municipal 7636400020 y rellena el resto.
+        base = "763640002"
+        resto = "".join(str(random.randint(0, 9)) for _ in range(30 - len(base)))
+        return base + resto
+
+    print(f"  Llenando {nfilas} linderos con ORIENTACION REAL del poligono...")
+    hechos_or = hechos_co = hechos_txt = saltados = errores = 0
+
+    # Desplegables: pares (orientacion, colinda con).
+    for f in range(nfilas):
+        sel_or = selects.nth(f * 2)
+        sel_co = selects.nth(f * 2 + 1)
+        # Orientacion real.
+        try:
+            if sel_or.input_value() in ("", None):
+                sel_or.select_option(label=orientaciones[f])
+                hechos_or += 1
+            else:
+                saltados += 1
+        except Exception:
+            errores += 1
+        # Colinda con (aleatorio coherente).
+        tipo = random.choice(tipos)
+        try:
+            if sel_co.input_value() in ("", None):
+                sel_co.select_option(label=tipo)
+                hechos_co += 1
+        except Exception:
+            errores += 1
+        if f % 10 == 0:
+            page.wait_for_timeout(120)
+
+    # Campos de texto del NPN/nombre del colindante (un input por fila).
+    inputs = page.locator("input[placeholder*='NPN del predio vecino']")
+    ni = inputs.count()
+    for f in range(min(ni, nfilas)):
+        try:
+            # Reconstruir el tipo elegido no es trivial; se usa un valor generico
+            # coherente: NPN sintetico (predio) la mayoria, nombre de via/rio algunos.
+            r = random.random()
+            if r < 0.7:
+                valor = npn_sintetico()
+            elif r < 0.85:
+                valor = random.choice(nombres_via)
+            else:
+                valor = random.choice(nombres_rio)
+            caja = inputs.nth(f)
+            if caja.input_value() in ("", None):
+                caja.fill(valor)
+                hechos_txt += 1
+        except Exception:
+            errores += 1
+        if f % 10 == 0:
+            page.wait_for_timeout(100)
+
+    print(f"  Orientaciones aplicadas: {hechos_or} | Colinda con: {hechos_co} | "
+          f"NPN/nombre: {hechos_txt}")
+    print(f"  Ya tenian valor: {saltados} | errores: {errores}")
+    print("  Recuerda pulsar 'Guardar' para fijar los linderos (boton Guardar).")
+
+
+def caracterizacion_ladm(page, tipo_predio: str = "Privado",
+                         tipo_derecho: str = "Dominio") -> None:
+    """Llena la 'Caracterizacion LADM del Predio' (Paso 1): Tipo de Predio y
+    Tipo de Derecho. La Condicion suele ser readonly (derivada del NPN).
+
+    Localiza los desplegables por sus opciones caracteristicas, no por indice, para
+    ser robusto si hay otros <select> en la pagina.
+    """
+    selects = page.locator("select")
+    total = selects.count()
+    if total == 0:
+        print("  No hay desplegables. ¿Estas en el Paso 1 (Caracterizacion LADM)?")
+        return
+
+    def opciones(i):
+        o = selects.nth(i).locator("option")
+        return [o.nth(j).inner_text().strip() for j in range(o.count())]
+
+    sel_predio = sel_derecho = None
+    for i in range(total):
+        txt = opciones(i)
+        joined = " ".join(txt)
+        if "Privado" in txt and ("Baldío" in joined or "Baldio" in joined):
+            sel_predio = selects.nth(i)
+        if "Dominio" in txt and ("Usufructo" in txt or "Nuda Propiedad" in txt):
+            sel_derecho = selects.nth(i)
+
+    hechos = 0
+    if sel_predio is not None:
+        try:
+            sel_predio.select_option(label=tipo_predio)
+            print(f"  Tipo de Predio = {tipo_predio!r}")
+            hechos += 1
+        except Exception as e:
+            print(f"  No se pudo elegir Tipo de Predio: {type(e).__name__}")
+    else:
+        print("  No se encontro el desplegable de Tipo de Predio.")
+    if sel_derecho is not None:
+        try:
+            sel_derecho.select_option(label=tipo_derecho)
+            print(f"  Tipo de Derecho = {tipo_derecho!r}")
+            hechos += 1
+        except Exception as e:
+            print(f"  No se pudo elegir Tipo de Derecho: {type(e).__name__}")
+    else:
+        print("  No se encontro el desplegable de Tipo de Derecho.")
+    page.wait_for_timeout(400)
+    print(f"  Caracterizacion LADM: {hechos}/2 campos llenados.")
+
+
+def calcular_avaluo(page, anio: str) -> None:
+    """Automatiza el Paso 6 (Avaluo): elige la vigencia del retroactivo y pulsa
+    'Calcular retroactivo'.
+
+    Mapa (confirmado en R-2026-0057):
+      - Desplegable 'Vigencia' del bloque AVALUO RETROACTIVO (unico <select> del paso).
+      - Boton 'Calcular retroactivo'.
+    Al elegir el año N se calculan/guardan las vigencias desde N hasta la anterior a
+    la actual.
+    """
+    anio = (anio or "").strip()
+    if not anio:
+        print("  Uso: avaluo <anio>  (p. ej. avaluo 2025)")
+        return
+    # Seleccionar la vigencia. En este paso suele haber un unico <select>.
+    selects = page.locator("select")
+    if selects.count() == 0:
+        print("  No hay desplegable de vigencia. ¿Estas en el Paso 6 (Avaluo)?")
+        return
+    # Si hay varios, tomar el que tenga el año como opcion.
+    objetivo = None
+    for i in range(selects.count()):
+        opts = selects.nth(i).locator("option")
+        textos = [opts.nth(j).inner_text().strip() for j in range(opts.count())]
+        if anio in textos:
+            objetivo = selects.nth(i)
+            break
+    if objetivo is None:
+        objetivo = selects.first
+    try:
+        objetivo.select_option(label=anio)
+        print(f"  Vigencia seleccionada: {anio}")
+    except Exception as e:
+        print(f"  No se pudo seleccionar la vigencia {anio}: {type(e).__name__}: {e}")
+        return
+    page.wait_for_timeout(500)
+    # Pulsar 'Calcular retroactivo'.
+    boton = page.get_by_role("button", name="Calcular retroactivo")
+    if boton.count() == 0:
+        boton = page.locator("button", has_text="Calcular retroactivo")
+    if boton.count() == 0:
+        print("  No se encontro el boton 'Calcular retroactivo'.")
+        return
+    boton.first.click()
+    page.wait_for_timeout(2000)
+    page.wait_for_load_state("networkidle")
+    print(f"  Avaluo retroactivo calculado desde {anio}. Revisa la tabla de vigencias.")
+
+
+def fuente_administrativa(page, semilla: str = "") -> None:
+    """Rellena en bloque el Paso 5 (Fuente Administrativa) con datos sinteticos.
+
+    Mapa del formulario (confirmado en R-2026-0057, Efectos Registrales):
+      Desplegables (en orden en la pagina):
+        [0] Tipo de Fuente       -> Escritura Pública
+        [1] Estado Disponibilidad-> Disponible
+        [2] Adquisicion          -> A-Tradicion
+        [3] Ente Emisor          -> Notaria
+        [4] Departamento Origen  -> Valle del Cauca
+        [5] Municipio Origen     -> Jamundi (se habilita tras elegir depto)
+        [6] Naturaleza Juridica  -> una opcion valida
+      Texto:
+        input[placeholder='Ej: 1234'] -> Numero de Escritura/Documento
+        input[placeholder='Ej: 5']    -> Oficina de Origen
+      Fecha:
+        input[type=date] nth=0 -> Fecha Documento Fuente
+        input[type=date] nth=1 -> Fecha de Anotacion (si existe)
+
+    Los valores variables (numero de escritura, oficina, fechas, anotacion) se
+    generan aleatorios para NO repetir entre tramites. 'semilla' permite fijar la
+    aleatoriedad por radicado si se desea reproducibilidad.
+    """
+    import random
+    if semilla:
+        random.seed(semilla)
+
+    # Valores de desplegables (por etiqueta). Si alguno no existe, se informa.
+    desplegables = [
+        ("Tipo de Fuente", "Escritura Pública"),
+        ("Estado de Disponibilidad", "Disponible"),
+        ("Adquisicion", "A-Tradicion"),
+        ("Ente Emisor", "Notaria"),
+        ("Departamento de Origen", "Valle del Cauca"),
+        ("Municipio de Origen", None),   # se resuelve por coincidencia 'Jamund'
+        ("Naturaleza Juridica", None),   # se elige la primera opcion real valida
+    ]
+
+    selects = page.locator("select")
+    total = selects.count()
+    if total < 7:
+        print(f"  Solo hay {total} desplegables; ¿estas en el Paso 5 (Fuente Administrativa)?")
+        return
+
+    def elegir(idx: int, etiqueta: str | None, contiene: str | None = None):
+        sel = selects.nth(idx)
+        opciones = sel.locator("option")
+        n = opciones.count()
+        # Construir lista de textos de opciones.
+        textos = [opciones.nth(j).inner_text().strip() for j in range(n)]
+        objetivo = None
+        if etiqueta:
+            # Coincidencia exacta o por prefijo.
+            for t in textos:
+                if t == etiqueta or t.startswith(etiqueta):
+                    objetivo = t
+                    break
+        if objetivo is None and contiene:
+            for t in textos:
+                if contiene.lower() in t.lower():
+                    objetivo = t
+                    break
+        if objetivo is None:
+            # Ultimo recurso: primera opcion que no sea el placeholder.
+            for t in textos:
+                if not t.lower().startswith("seleccione"):
+                    objetivo = t
+                    break
+        if objetivo is None:
+            print(f"    [select {idx}] sin opcion valida.")
+            return False
+        try:
+            sel.select_option(label=objetivo)
+            print(f"    [select {idx}] = {objetivo!r}")
+            return True
+        except Exception as e:
+            print(f"    [select {idx}] error: {type(e).__name__}")
+            return False
+
+    print("  Llenando Fuente Administrativa (Paso 5) con datos sinteticos...")
+    elegir(0, "Escritura Pública")
+    elegir(1, "Disponible")
+    elegir(2, "A-Tradicion")
+    elegir(3, "Notaria")
+    elegir(4, "Valle del Cauca")
+    page.wait_for_timeout(900)  # dar tiempo a que cargue el municipio
+    elegir(5, None, contiene="Jamund")
+    elegir(6, None)  # primera naturaleza juridica valida
+
+    # Campos de texto variables (unicos por tramite).
+    num_escritura = str(random.randint(1000, 9999))
+    oficina = str(random.randint(1, 12))
+    try:
+        caja = page.locator("input[placeholder='Ej: 1234']")
+        if caja.count() > 0:
+            caja.first.fill(num_escritura)
+            print(f"    Numero de Escritura/Documento = {num_escritura}")
+    except Exception:
+        pass
+    try:
+        caja = page.locator("input[placeholder='Ej: 5']")
+        if caja.count() > 0:
+            caja.first.fill(oficina)
+            print(f"    Oficina de Origen = {oficina}")
+    except Exception:
+        pass
+
+    # Fechas (coherentes: documento antes que anotacion, ambas en el pasado).
+    anio = random.randint(2008, 2020)
+    mes = random.randint(1, 12)
+    dia = random.randint(1, 28)
+    fecha_doc = f"{anio:04d}-{mes:02d}-{dia:02d}"
+    # Anotacion unos dias despues.
+    dia2 = min(dia + random.randint(3, 20), 28)
+    fecha_anot = f"{anio:04d}-{mes:02d}-{dia2:02d}"
+    fechas = page.locator("input[type=date]")
+    try:
+        if fechas.count() > 0:
+            fechas.nth(0).fill(fecha_doc)
+            print(f"    Fecha Documento Fuente = {fecha_doc}")
+        if fechas.count() > 1:
+            fechas.nth(1).fill(fecha_anot)
+            print(f"    Fecha de Anotacion = {fecha_anot}")
+    except Exception:
+        pass
+
+    # Anotacion: campo de texto (input con placeholder de anotacion si existe).
+    anotacion = f"{random.randint(1, 500):04d}"
+    try:
+        caja = page.locator("input[placeholder*='anotación'], input[placeholder*='anotacion']")
+        if caja.count() > 0:
+            caja.first.fill(anotacion)
+            print(f"    Anotacion (Nro) = {anotacion}")
+    except Exception:
+        pass
+
+    # Observacion: el/los textarea del formulario -> 'sin observacion'.
+    try:
+        tas = page.locator("textarea")
+        escritos = 0
+        for i in range(tas.count()):
+            t = tas.nth(i)
+            try:
+                if t.input_value() in ("", None):
+                    t.fill("sin observacion")
+                    escritos += 1
+            except Exception:
+                continue
+        if escritos:
+            print(f"    Observacion (textarea x{escritos}) = 'sin observacion'")
+    except Exception:
+        pass
+
+    print("  Paso 5 rellenado. Revisa en pantalla y avanza con 'continuar'.")
+
+
+def diagnosticar_paso(page) -> None:
+    """Informa en que paso del wizard estamos y si es automatizable o manual.
+
+    Si el paso requiere intervencion del usuario (cartografico), lo indica con la
+    frase de pausa acordada para que el usuario actue y luego diga 'listo'.
+    """
+    n = detectar_paso(page)
+    if n is None:
+        print("  No se pudo determinar el paso activo del wizard.")
+        print("  Sugerencia: usa 'cap' y revisa la pantalla, o verifica que estas en /gestion-tramites.")
+        return
+    info = WIZARD_PASOS.get(n, {})
+    nombre = info.get("nombre", "?")
+    naturaleza = info.get("naturaleza", "?")
+    detalle = info.get("detalle", "")
+    # Detectar "solo lectura" en el cuerpo del paso actual.
+    try:
+        cuerpo = page.locator("body").inner_text().lower()
+    except Exception:
+        cuerpo = ""
+    solo_lectura = "solo lectura" in cuerpo
+
+    print(f"  === PASO {n}: {nombre} ===")
+    print(f"  {detalle}")
+    if naturaleza == "manual":
+        print("")
+        print(f"  >>> ACCION DEL USUARIO REQUERIDA (paso cartografico/manual).")
+        print(f"  >>> Paso cartografico alcanzado en el tramite. Queda en espera de tu")
+        print(f"  >>> intervencion manual sobre {nombre.lower()}.")
+        print(f"  >>> Cuando termines, escribe 'listo' o 'continuar' para seguir.")
+    else:
+        if solo_lectura:
+            print("  -> Paso de SOLO LECTURA: no hay campos que editar. Se avanza con 'continuar'.")
+        else:
+            print("  -> Paso AUTOMATIZABLE (alfanumerico): el agente provee los datos a llenar.")
+    print(f"  (naturaleza: {naturaleza}{' | solo lectura detectado' if solo_lectura else ''})")
 
 
 def agregar_foto(page) -> None:
@@ -509,6 +1095,35 @@ def repl(page, base_url: str) -> None:
                     subir_foto(page, arg)
             elif cmd == "continuar":
                 continuar_wizard(page)
+            elif cmd == "paso":
+                diagnosticar_paso(page)
+            elif cmd == "puntosmasivo":
+                # Uso: puntosmasivo <TipoPunto> | <Metodo> | <PuntoControl>
+                p1, _, resto = arg.partition("|")
+                p2, _, p3 = resto.partition("|")
+                tp = p1.strip() or "Mojón"
+                me = p2.strip() or "Método Directo"
+                pc = p3.strip() or "Apoyo"
+                puntos_masivo(page, tp, me, pc)
+            elif cmd == "linderosmasivo":
+                # Uso: linderosmasivo <ruta del geojson del poligono>
+                if not arg:
+                    print("  Uso: linderosmasivo <ruta del .geojson del predio>")
+                    print("  Ej: linderosmasivo C:\\...\\763640002000000030239000000000.geojson")
+                else:
+                    linderos_masivo(page, arg)
+            elif cmd == "fuenteadmin":
+                # Uso: fuenteadmin [semilla]  (semilla opcional, p.ej. el radicado)
+                fuente_administrativa(page, arg.strip())
+            elif cmd == "avaluo":
+                # Uso: avaluo <anio>  (p. ej. avaluo 2025)
+                calcular_avaluo(page, arg.strip())
+            elif cmd == "caracterizacion":
+                # Uso: caracterizacion [TipoPredio] | [TipoDerecho]
+                p1, _, p2 = arg.partition("|")
+                tp = p1.strip() or "Privado"
+                td = p2.strip() or "Dominio"
+                caracterizacion_ladm(page, tp, td)
             elif cmd == "direccion":
                 # Uso: direccion <vpValor> <vpLetra> <vgValor> <vgLetra> <numPredio>
                 partes_dir = arg.split()

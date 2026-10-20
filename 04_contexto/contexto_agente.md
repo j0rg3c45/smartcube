@@ -355,6 +355,11 @@ en este proyecto. Mantener solo a título informativo.
 | 15 | R-2026-0072 | Paso 1 / Número de Matrícula | El campo "Número de Matrícula" debe ser SOLO numérico (no lleva el código ORIP ni guion). Poner "370-125478" fue rechazado por la validación CUSTOM_PREDIO_CF_MATRICULA_NUMERICA; lo correcto es solo el folio (125478). Validación correcta de la plataforma. | Captura 20261019_173710. |
 | 16 | R-2026-0072 | Paso 7 / Destino vs Construcción | La plataforma valida que un predio con destino Habitacional/Comercial/Industrial DEBE tener al menos una unidad de construcción (CUSTOM_DESTINO_REQUIERE_UC). Si es un lote sin construcción, el destino debe ser tipo "Lote Urbanizado No Construido". Validación correcta. | Captura 20261019_173710. |
 | 17 | R-2026-0072 | Paso 7 / Traslape de terreno (topología) | CUSTOM_TERRENO_TRASLAPE_VECINO: el terreno (predio 112067) se traslapa 55.40 m² con el vecino 763640100000004630801000000000 (predio 31598). El error SOLO se detecta en la plataforma (al validar en el Paso 7), DESPUÉS de cargar la geometría. El analista no tiene cómo validar/prever el traslape antes porque no cuenta con esa validación topológica en QGIS. RECOMENDACIÓN (ver 8.1). | Captura 20261019_173911. |
+| 18 | R-2026-0057 | Paso 2 Propietario / % Participación + solo lectura | En trámites tipo **Efectos Registrales - Actualización Linderos Art. 6.1** (Mutación Integral) el Paso 2 Propietario es **solo lectura** ("solo lectura para esta mutación"). El propietario único (BETTY GUILLERMINA ORTIZ MAFLA, CC 000051636025, Dominio) llega con **% Participación = 0%** y **Sexo vacío (—)**, pero al ser solo lectura el analista NO PUEDE corregirlo en la plataforma. Combina el hallazgo #5 (0% en propietario único) con el agravante de que no hay forma de subsanarlo en este tipo de trámite. | Captura 20261020_085929_paso2_0057. Confirma patrón de #5 en R-2026-0077 y R-2026-0057. |
+| 19 | R-2026-0057 | Paso 3 Terreno / Puntos y Linderos | USABILIDAD/RENDIMIENTO: cuando el polígono del terreno tiene MUCHOS vértices, la descripción de Puntos y Linderos se vuelve muy larga y tediosa. En este predio hay **55 puntos y 55 linderos (110 filas) por describir** manualmente (Tipo de punto, Método, Punto de control por cada punto; y cada lindero). El botón "Continuar a Construcciones" queda bloqueado hasta describir las 110 filas. No hay forma de aplicar un valor en bloque / masivo a todas las filas, lo que hace el paso costoso en tiempo para polígonos con muchos vértices. TENER EN CUENTA: este paso es MUY LARGO si el polígono tiene muchos vértices. | Captura 20261020_090854_pantalla. "110 fila(s) sin describir". |
+| 20 | R-2026-0057 | Tipo Efectos Registrales / Paso 4 Construcción y demás data | En trámites tipo **Efectos Registrales - Actualización Linderos Art. 6.1 (Mutación Integral)** el trámite NO permite **actualizar/completar las construcciones** ni editar **la demás data** mientras se revisa la información del trámite. La Unidad de Construcción A llega incompleta (Año = vacío, Área gráfica = — / Total gráfica 0.00 m², sin polígono cargado) pero el analista NO puede complementarla ni corregirla (paso de solo lectura / sin edición). Esto impide subsanar datos faltantes que luego generan warnings/errores en el Paso 7 (año fuera de rango, planta con altura=None). Limitación relevante: en este tipo de trámite el analista no tiene herramientas para dejar la información completa. | Captura 20261020_093151_paso4_0057. UC Año=— , Total gráfica 0.00 m². Confirmado por el usuario. |
+| 21 | R-2026-0057 | Paso 7 Resumen / CONTRADICCIÓN bloqueante (UC sin geometría) | CONTRADICCIÓN GRAVE DE LA PLATAFORMA: el Paso 7 arroja **1 ERROR que bloquea avanzar** -> `2_CT_CF_25` CONSISTENCIA TOPOLÓGICA: "UC #1 (A) sin geometría. Se deben verificar que todas las unidades de construcción tengan geometrías asociadas." PERO en este tipo de trámite (Efectos Registrales) el Paso 4 de Construcción NO permite cargar/editar la geometría de la UC (hallazgo #20). Resultado: el trámite exige una geometría de la UC que NO da forma de cargar desde el flujo, dejando el trámite BLOQUEADO sin posibilidad de subsanar desde la plataforma. El botón "Pasar borrador acto administrativo" queda deshabilitado ("1 error(es) de validación bloquean el avance"). Validaciones: 1 error, 1 warning, 42 OK. | Captura 20261020_094857_paso7_validado. Error 2_CT_CF_25. |
+| 22 | R-2026-0057 | Paso 1 / Caracterización LADM NO editable | CONFIRMADO (usuario + automatización): la "Caracterización LADM del Predio" (Tipo de Predio, Tipo de Derecho) está requerida pero sus desplegables están **deshabilitados/readonly**; NI el usuario NI la automatización pueden complementarla (TimeoutError al intentar seleccionar, porque el control no es interactuable). El usuario confirma que es un tema de DESARROLLO de la plataforma (no depende del analista). Sumado a #20 y #21, evidencia que en Efectos Registrales el flujo exige datos (caracterización LADM, geometría de UC) que no deja completar y luego bloquea en el Paso 7. CONTRADICCIÓN DE DISEÑO: campos obligatorios no editables que impiden cerrar el trámite. | Salida REPL: "No se pudo elegir Tipo de Predio/Derecho: TimeoutError". Confirmado por el usuario. |
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
@@ -591,8 +596,16 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
 
 #### Tipos de trámite observados
 
-- **Efectos Registrales - Actualización Linderos Artículo 6.1** (R-2026-0077,
-  "Mutación Integral"). Es el tipo de trámite que se está procesando en las pruebas.
+- **Efectos Registrales - Actualización Linderos Artículo 6.1** (R-2026-0077 y
+  R-2026-0057, "Mutación Integral"). Es el tipo de trámite que se está procesando en
+  las pruebas.
+  - **NOTA IMPORTANTE (comportamiento de este tipo):** en Efectos Registrales la
+    mayoría de pasos son de SOLO LECTURA. El trámite NO deja **actualizar/completar
+    las construcciones** (Paso 4) ni **editar la demás data** (propietario, UC, etc.)
+    mientras se revisa la información del trámite. Es decir, el analista solo puede
+    revisar y avanzar, no complementar datos que vengan incompletos (p. ej. UC sin
+    año, sin polígono/área gráfica, propietario con 0% de participación). Ver hallazgo
+    en la tabla de la sección 8.
 - Mutación 2a Clase - Segregación (R-2026-0089, Trámite #95).
 - **Mutación 5a Clase - Predios Nuevos Formales** (R-2026-0072, Trámite #75).
   NPN `763640100000004630801000000000` (30 dígitos). Solicitante EMPRESA3. Las
@@ -645,6 +658,73 @@ Transversal, Circular.
 ---
 
 ## 10. Estado de la sesión (dónde vamos)
+
+**Sesión 20/10/2026 — R-2026-0057 BLOQUEADO por bug de plataforma (Efectos Registrales).**
+
+- Se procesó **R-2026-0057** (Efectos_Registrales - Actualización Linderos Art. 6.1,
+  "Mutación Integral", Trámite #60). NPN `763640002000000030239000000000`, predio rural
+  de ~13,9 ha (139.363 m2), destino Agropecuario. Validación llegó Completa -> inicio
+  directo.
+- Avance del wizard: Paso 1 (predio, solo lectura + foto) -> Paso 2 (propietario, SOLO
+  LECTURA, 0% part.) -> Paso 3 (Terreno: 55 puntos y 55 linderos rellenados con los
+  comandos masivos, orientaciones REALES desde el GeoJSON, Guardado OK) -> Paso 4
+  (Construcción: UC "A" ya existente pero SIN geometría y sin año, NO editable) ->
+  Paso 5 (Fuente Administrativa rellenada con `fuenteadmin`) -> Paso 6 (Avalúo
+  retroactivo 2025 con `avaluo 2025`, OK) -> Paso 7 (Resumen).
+- **BLOQUEO:** el Paso 7 arroja 1 ERROR (`2_CT_CF_25`: "UC #1 (A) sin geometría") que
+  impide avanzar. En este tipo de trámite NO se puede cargar la geometría de la UC ni
+  editar la Caracterización LADM del Paso 1 (ambos readonly). El usuario CONFIRMA que
+  es un tema de DESARROLLO de la plataforma, no del analista. El trámite NO se puede
+  pasar a calidad. Hallazgos #20, #21, #22.
+- **R-2026-0057 queda como PROCESADO pero BLOQUEADO** (no cuenta como completado a
+  calidad). Pendiente: el usuario soluciona el problema de plataforma; cuando se pueda
+  cargar la geometría de la UC, re-validar (botón RE-VALIDAR) y pasar a calidad.
+
+#### Comandos de automatización NUEVOS en qa.py (sesión 20/10/2026)
+
+Se agregaron comandos de alto nivel para automatizar los pasos alfanuméricos del
+wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
+- `paso` — diagnostica el paso actual del wizard y dice si es automatizable (agente)
+  o manual (usuario/cartografico), con la frase de pausa cuando corresponde.
+- `puntosmasivo <TipoPunto>|<Metodo>|<PuntoControl>` — Paso 3 pestaña Puntos: llena
+  las N filas (N = vertices) en bloque. Valores rural por defecto: Mojón / Método
+  Directo / Apoyo.
+- `linderosmasivo <ruta.geojson>` — Paso 3 pestaña Linderos: la ORIENTACION de cada
+  lindero se calcula REAL desde el poligono (azimut de cada segmento); 'Colinda con'
+  y NPN/nombre colindante son sinteticos coherentes. Tras llenar hay que pulsar
+  Guardar (`click button:has-text("Guardar")`).
+- `fuenteadmin [semilla]` — Paso 5: rellena toda la Fuente Administrativa (tipo fuente
+  Escritura Pública, Disponible, A-Tradicion, Notaria, Valle del Cauca, Jamundí,
+  naturaleza jurídica; numeros y fechas aleatorios; observacion "sin observacion").
+- `avaluo <anio>` — Paso 6: elige la vigencia del retroactivo y pulsa "Calcular
+  retroactivo". Ej: `avaluo 2025`.
+- `caracterizacion [TipoPredio]|[TipoDerecho]` — Paso 1: llena Caracterización LADM
+  (Privado / Dominio). OJO: en Efectos Registrales esos controles son READONLY y el
+  comando dara TimeoutError (no es error del comando, es que la plataforma no deja).
+
+> Nota mapeo Paso 3: los <select> van en grupos ciclicos. Puntos = 3 por fila
+> (Tipo de punto / Metodo / Punto de control). Linderos = 2 por fila (Orientacion /
+> Colinda con) + un input de texto 'NPN o nombre del colindante'.
+
+#### Tipos de trámite que requieren intervención manual / bloquean (RESUMEN)
+
+- **Efectos Registrales - Actualización Linderos Art. 6.1 (Mutación Integral):** muchos
+  pasos son SOLO LECTURA. NO deja editar Caracterización LADM (Paso 1), Propietario
+  (Paso 2), ni Construcción (Paso 4). Si la UC llega sin geometría, el Paso 7 bloquea
+  con error `2_CT_CF_25` y NO hay forma de subsanar -> trámite bloqueado (#20, #21, #22).
+
+#### Plantillas de carga masiva (carpeta `plantillas/`)
+
+- `plantillas/plantilla_cambio_propietario.xlsx`: plantilla Excel de carga masiva con
+  hojas **Instrucciones**, **Cambio_Propietario** (columnas obligatorias con `*`) y
+  **Dominios** (listas de valores validos). Formato de referencia para nuevas
+  plantillas.
+- PENDIENTE: crear `plantillas/plantilla_topografia/plantilla_topografia.xlsx`
+  (puntos + linderos) con el mismo estilo. Estructura propuesta: hoja Puntos (Nº
+  radicado, NPN, Nº punto, Este, Norte, Tipo de punto, Método, Punto de control),
+  hoja Linderos (Nº radicado, NPN, Tramo, Longitud, Orientación, Colinda con, NPN/
+  nombre colindante) y hoja Dominios con los valores reales ya capturados. En espera
+  de que el usuario confirme alcance.
 
 **Sesión 15/10/2026 — R-2026-0077 COMPLETADO (pasó a calidad).**
 
@@ -751,4 +831,29 @@ sigue guardada en el perfil).
 
 ---
 
-_Última actualización: 20/10/2026_
+---
+
+## 12. Para retomar (próxima sesión)
+
+1. Lanzar el entorno (dos terminales, en `05_codigo/`):
+   - `uv run python navegador.py` (dejar abierta; iniciar sesión una vez; NO abrir DevTools/F12).
+   - `uv run python qa.py` (REPL de comandos).
+2. **R-2026-0057:** retomar solo si el usuario resolvió el bug de plataforma (poder
+   cargar la geometría de la UC). Si se puede: re-validar en el Paso 7 y pasar a calidad.
+   Si no: queda bloqueado y se sigue con otro radicado.
+3. Procesar el siguiente radicado MENOR en Asignado (verificar en vivo con `listar`).
+   Listado Asignado al 20/10 (tras 0057): 0061, 0062, 0067, 0079, 0081, 0082, 0084,
+   0085, 0086, 0087, 0088, 0089.
+4. Usar los comandos de automatización del wizard (paso, puntosmasivo, linderosmasivo,
+   fuenteadmin, avaluo, caracterizacion). Datos sintéticos únicos por trámite.
+5. PENDIENTE a pedido del usuario: crear `plantillas/plantilla_topografia/`.
+6. RECORDAR la meta de **50 radicados** e informe final de inconsistencias (van 22
+   hallazgos registrados).
+
+Progreso meta: **2 de 50 completos a calidad** (R-2026-0077, R-2026-0075).
+R-2026-0072 en borrador; R-2026-0057 bloqueado por bug.
+
+---
+
+_Última actualización: 20/10/2026 (sesión R-2026-0057 bloqueado; comandos de
+automatización del wizard agregados a qa.py)._
