@@ -731,6 +731,31 @@ Transversal, Circular.
 
 ## 10. Estado de la sesión (dónde vamos)
 
+**Sesión 20/10/2026 (tarde) — LOTE alfanumerico procesado con lote_qa.py.**
+
+Se ejecuto `lote_qa.py` sobre los radicados en Asignado (excluyendo 0057 y 0061 ya
+hechos). Resultado del lote (cada uno con su `resumen_<RADICADO>.txt` en su carpeta):
+
+- **Avanzaron al Paso 7 (Resumen) completos** (Fuente Admin 7/7, avaluo 2025): R-2026-0061,
+  0062 (Mut 4a Rev. Avaluo), 0079 (Mixta), 0084 (Mut 3a Cambio Destino), 0085
+  (Rectificaciones), 0088 (Mut 3a Cambio Area). Faltan geometrias de Terreno y
+  Construccion (reserva del usuario).
+- **Requieren Asignacion de NPN** (cartografico, antes del wizard): 0067 (Mut 2a Division),
+  0087 (Rectif. Cambio NPN), 0089 (Mut 2a Segregacion). El lote se detuvo limpio.
+- **Detenidos en Paso 6** (avaluo 2025 calculado pero el detector no avanzo al 7):
+  0081 y 0082 (ambos Mutacion 1a - Cambio Propietario). A revisar si estos tipos NO
+  tienen paso de avaluo (el "Cambio de Propietario" podria no recalcular avaluo).
+- **Sin determinar** (no inicio wizard, revisar manual): 0086 (#92, tipo no leido).
+
+Confirmado que funciona: el fix de Fuente Administrativa (espera de carga de opciones +
+fallback a primera opcion valida + verificacion 7/7 en el lote). Datos sinteticos unicos
+por tramite (nombres/documentos no repetidos). El usuario revisa manualmente 0081, 0082,
+0086 e informa.
+
+Pendientes de afinamiento del detector (opcional): (a) tras el avaluo en Cambio de
+Propietario el detector reintenta el Paso 6 y no avanza; (b) deteccion de estados raros
+tipo 0086. No son criticos: el lote dejo todo lo alfanumerico lleno.
+
 **Sesión 20/10/2026 — R-2026-0057 BLOQUEADO por bug de plataforma (Efectos Registrales).**
 
 - Se procesó **R-2026-0057** (Efectos_Registrales - Actualización Linderos Art. 6.1,
