@@ -22,8 +22,10 @@ Uso:
     1) En una terminal:  uv run navegador.py      (dejar abierta; iniciar sesion una vez)
     2) En otra terminal:
          uv run validador_qa.py R-2026-0062 R-2026-0067 R-2026-0079
-       o para validar TODOS los que esten en estado Asignado con validacion pendiente:
+       o para validar TODOS los Pendientes (recorre todas las paginas):
          uv run validador_qa.py --todos
+       o en modo continuo (vigila y valida los nuevos que vayan apareciendo):
+         uv run validador_qa.py --vigilar --intervalo 120
     3) (Opcional) ver qué haría sin aprobar nada:
          uv run validador_qa.py --todos --dry-run
 
@@ -345,33 +347,92 @@ def procesar_radicado(page, base_url: str, radicado: str, rep: Reporte,
     rep.agregar(fila)
 
 
-def listar_asignados_pendientes(page, base_url: str, rep: Reporte) -> list[str]:
-    """Recorre el listado de Asignado (usando el buscador vacio + paginacion best-effort)
-    y devuelve los radicados cuya validacion este Pendiente. Como la paginacion puede
-    fallar, se recomienda pasar la lista explicita de radicados."""
-    ir_asignacion(page, base_url)
-    # Filtrar estado Asignado
+def _filtrar_asignado(page) -> None:
+    """Aplica el filtro de estado 'Asignado' en el listado."""
     try:
         page.get_by_text("Todos los estados", exact=False).first.click()
         page.wait_for_timeout(400)
         page.locator("label", has_text="Asignado").first.locator(
             "input[type=checkbox]").check()
         page.wait_for_timeout(400)
-        page.keyboard.press("Escape")
+        try:
+            page.get_by_role("heading", name="Asignación de Radicados").click()
+        except Exception:
+            page.mouse.click(5, 5)
+        page.wait_for_timeout(400)
         page.wait_for_load_state("networkidle")
     except Exception:
         pass
-    pendientes = []
-    filas = page.locator("table tbody tr")
-    for i in range(filas.count()):
-        t = filas.nth(i).inner_text()
-        import re
-        m = re.search(r"R-\d{4}-\d{4}", t)
-        if m and "Pendiente" in t:
-            pendientes.append(m.group(0))
-    rep.log(f"Pendientes detectados (pagina actual): {', '.join(pendientes) or 'ninguno'}")
-    rep.log("NOTA: la deteccion automatica solo cubre la pagina visible. Para lote "
-            "completo, pasar la lista de radicados como argumentos.")
+
+
+def _boton_siguiente(page):
+    """Localiza el boton 'Siguiente' de la PAGINACION (el que tiene chevron_right)."""
+    # Candidatos: botones cuyo texto contiene 'Siguiente'. Elegimos el que ademas
+    # tenga el icono chevron_right (paginacion), no 'Siguiente Paso' del wizard.
+    cands = page.locator("button", has_text="Siguiente")
+    for i in range(cands.count()):
+        b = cands.nth(i)
+        try:
+            txt = b.inner_text().strip().lower()
+        except Exception:
+            txt = ""
+        # El de paginacion es exactamente 'Siguiente' (+ icono), no 'Siguiente Paso'
+        if txt.startswith("siguiente") and "paso" not in txt and "resumen" not in txt:
+            return b
+    return None
+
+
+def _leer_total_paginas(page) -> int:
+    """Lee 'Página X de Y' y devuelve Y (total de paginas). 1 si no lo encuentra."""
+    import re
+    try:
+        txt = page.locator("body").inner_text()
+    except Exception:
+        return 1
+    m = re.search(r"P[aá]gina\s+\d+\s+de\s+(\d+)", txt)
+    return int(m.group(1)) if m else 1
+
+
+def listar_asignados_pendientes(page, base_url: str, rep: Reporte) -> list[str]:
+    """Recorre TODAS las paginas del listado filtrado por 'Asignado' y devuelve los
+    radicados cuya validacion este 'Pendiente', ordenados de menor a mayor."""
+    import re
+    ir_asignacion(page, base_url)
+    _filtrar_asignado(page)
+    total_pag = _leer_total_paginas(page)
+    rep.log(f"Total de paginas en Asignado: {total_pag}")
+    pendientes: list[str] = []
+    for pagina in range(1, total_pag + 1):
+        page.wait_for_timeout(600)
+        filas = page.locator("table tbody tr")
+        en_pagina = []
+        for i in range(filas.count()):
+            t = filas.nth(i).inner_text()
+            m = re.search(r"R-\d{4}-\d{4}", t)
+            if m:
+                rad = m.group(0)
+                if "Pendiente" in t and rad not in pendientes:
+                    pendientes.append(rad)
+                    en_pagina.append(rad)
+        rep.log(f"  Pagina {pagina}: pendientes = {', '.join(en_pagina) or 'ninguno'}")
+        # Pasar a la siguiente pagina si no es la ultima.
+        if pagina < total_pag:
+            sig = _boton_siguiente(page)
+            if sig is None:
+                rep.log("  No se hallo boton 'Siguiente' de paginacion; se detiene.")
+                break
+            antes = set(re.findall(r"R-\d{4}-\d{4}", page.locator("body").inner_text()))
+            sig.click()
+            page.wait_for_load_state("networkidle")
+            # Esperar a que cambie el conjunto de radicados visibles.
+            for _ in range(12):
+                page.wait_for_timeout(500)
+                ahora = set(re.findall(r"R-\d{4}-\d{4}",
+                                       page.locator("body").inner_text()))
+                if ahora and ahora != antes:
+                    break
+    rep.log(f"Total pendientes en todas las paginas ({len(pendientes)}): "
+            f"{', '.join(sorted(pendientes))}")
     return sorted(set(pendientes))
 
 
@@ -379,7 +440,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Validador QA en lote (tecnica+juridica)")
     parser.add_argument("radicados", nargs="*", help="radicados a validar (R-2026-XXXX)")
     parser.add_argument("--todos", action="store_true",
-                        help="detecta y valida los Pendientes de la pagina actual")
+                        help="detecta y valida TODOS los Pendientes (todas las paginas)")
+    parser.add_argument("--vigilar", action="store_true",
+                        help="modo continuo: revisa cada cierto tiempo y valida los nuevos")
+    parser.add_argument("--intervalo", type=int, default=120,
+                        help="segundos entre revisiones en modo --vigilar (def. 120)")
     parser.add_argument("--dry-run", action="store_true",
                         help="no aprueba; solo abre/cierra el modal (prueba segura)")
     args = parser.parse_args()
@@ -392,15 +457,35 @@ def main() -> None:
 
     p, browser, page = conectar(cfg)
     try:
-        radicados = list(args.radicados)
-        if args.todos and not radicados:
-            radicados = listar_asignados_pendientes(page, cfg["url"], rep)
-        if not radicados:
-            rep.log("No hay radicados para procesar. Pasa radicados o usa --todos.")
-            return
-        rep.log(f"Radicados a procesar ({len(radicados)}): {', '.join(radicados)}")
-        for r in radicados:
-            procesar_radicado(page, cfg["url"], r, rep, args.dry_run)
+        if args.vigilar:
+            # Modo continuo: revisa periodicamente y valida los Pendientes nuevos.
+            import time
+            ya_procesados: set[str] = set()
+            rep.log(f"MODO VIGILAR: revisando cada {args.intervalo}s. Ctrl+C para detener.")
+            while True:
+                pendientes = listar_asignados_pendientes(page, cfg["url"], rep)
+                nuevos = [r for r in pendientes if r not in ya_procesados]
+                if nuevos:
+                    rep.log(f"Nuevos pendientes a validar ({len(nuevos)}): "
+                            f"{', '.join(nuevos)}")
+                    for r in nuevos:
+                        procesar_radicado(page, cfg["url"], r, rep, args.dry_run)
+                        ya_procesados.add(r)
+                else:
+                    rep.log("Sin pendientes nuevos. Esperando siguiente revision...")
+                time.sleep(args.intervalo)
+        else:
+            radicados = list(args.radicados)
+            if args.todos and not radicados:
+                radicados = listar_asignados_pendientes(page, cfg["url"], rep)
+            if not radicados:
+                rep.log("No hay radicados para procesar. Pasa radicados, usa --todos o --vigilar.")
+                return
+            rep.log(f"Radicados a procesar ({len(radicados)}): {', '.join(radicados)}")
+            for r in radicados:
+                procesar_radicado(page, cfg["url"], r, rep, args.dry_run)
+    except KeyboardInterrupt:
+        rep.log("Detenido por el usuario (Ctrl+C).")
     finally:
         rep.log("Fin. El navegador sigue abierto.")
         rep.cerrar()
