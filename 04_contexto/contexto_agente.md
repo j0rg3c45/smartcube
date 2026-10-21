@@ -879,6 +879,17 @@ wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
   estructura/acabados/baño/cocina) + observaciones. Requiere que la GEOMETRIA (plantas)
   ya este cargada por el usuario. Luego revisar y pulsar 'Agregar UC'
   (`click button:has-text("Agregar UC")`). Probado en R-2026-0061 (UC nueva creada).
+- `propietario [semilla] [participacion]` — Paso 2 (Cambio de Propietario): llena 'Datos
+  del Nuevo Interesado' como Persona Natural con datos sinteticos UNICOS (nombre,
+  documento), Sexo, Tipo Derecho Dominio, % participacion (def. 100) y pulsa 'Agregar
+  Propietario'. Campos: documento/nombres/apellidos/% se llenan por POSICION (inputs
+  [0]=Nº Doc, [2]=1er Nombre, [3]=2do Nombre, [4]=1er Apellido, [5]=2do Apellido,
+  [6]=% number); los desplegables por opciones.
+  - REGLA (OBLIGATORIO): el campo **"Autorreconocimiento étnico" debe quedar en
+    "Ninguno"** (es obligatorio; sin el no se puede "Agregar Propietario"). Seleccionarlo
+    SIEMPRE en los casos automaticos. No asignar etnia ficticia a datos de prueba.
+  - El checkbox "Autorreconocimiento campesino" se deja SIN marcar.
+  - REGLA de datos: nombres y documentos UNICOS, no repetir entre tramites.
   - REGLA de calificacion: **CONSERVADORA** (sencillo/regular, bajo-medio puntaje). NO
     calificar alto para no inflar el avaluo ni perjudicar al propietario. Coherente con
     la info de las plantas (vivienda estandar).

@@ -72,8 +72,9 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
     propietario [semilla] [participacion]
                           Paso 2 (Cambio de Propietario): llena 'Datos del Nuevo
                           Interesado' como Persona Natural con datos sinteticos UNICOS
-                          (nombre, documento), Dominio y % participacion (def. 100), y
-                          pulsa 'Agregar Propietario'. Ej: propietario R-2026-0081 100
+                          (nombre, documento), Sexo, Autorreconocimiento ETNICO=Ninguno
+                          (OBLIGATORIO), Dominio y % participacion (def. 100), y pulsa
+                          'Agregar Propietario'. Ej: propietario R-2026-0081 100
     agregarfoto           pulsa '+ Agregar foto' (opcional)
     subirfoto <ruta>      carga un archivo de imagen
     continuar             pulsa 'Continuar' para avanzar de paso
@@ -862,9 +863,12 @@ def nuevo_propietario(page, semilla: str = "", participacion: str = "100") -> No
     elegir({"Masculino", "Femenino"}, p["sexo"])
     elegir({"Dominio", "Usufructo"}, "Dominio")
     print("  Tipo Derecho = Dominio")
-    # Autorreconocimiento etnico = Ninguno (explicito; no asignar etnia ficticia).
-    if elegir({"Indígena", "Afrocolombiano", "Ninguno"}, "Ninguno"):
+    # Autorreconocimiento etnico = Ninguno (OBLIGATORIO para agregar; no asignar etnia
+    # ficticia). Se ubica el select que contenga 'Afrocolombiano' y se elige 'Ninguno'.
+    if elegir({"Afrocolombiano"}, "Ninguno"):
         print("  Autorreconocimiento étnico = Ninguno")
+    else:
+        print("  [aviso] no se pudo fijar Autorreconocimiento étnico.")
     # Autorreconocimiento campesino: checkbox -> se deja SIN marcar.
 
     # 7) % Participacion: input numerico (placeholder 'Ej: 100').
