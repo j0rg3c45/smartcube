@@ -575,6 +575,17 @@ cartografica):
 - Comando: `tramite3a [semilla] [destino]` (de corrido; edita calificacion UC; NO pasa
   a calidad). El resumen.txt debe indicar: terreno intacto + calificacion de UC
   actualizada.
+- **REGLA (editar UC):** la informacion de la Unidad de Construccion SOLO se edita con
+  el boton del icono `<span class="material-symbols-outlined text-lg">edit</span>` en la
+  fila de la UC. Ese boton abre el modal "Editar UC A".
+- **Campos obligatorios de la UC al editar (si no, el Paso 7 da error):**
+  - Año de construccion (input min=1800, max=2026; puede venir en 0).
+  - Calificacion catastral completa (16 desplegables: estructura/acabados/baño/cocina).
+  - Total baños / habitaciones (valores coherentes de vivienda, no 0).
+  - **ALTURA de la(s) planta(s):** en la seccion "Plantas" del modal. Si la UC existente
+    NO tiene altura, el Paso 7 arroja `2_CLUC_CF_81`: "UC #N: planta con altura=None
+    (debe ser > 0)". Hay que asignar la altura (p. ej. 3 m por planta de vivienda).
+  - Guardar con 'Actualizar UC'.
 
 ### Tipo de trámite: Cancelaciones - Fuerza Mayor (R-2026-0086)
 
