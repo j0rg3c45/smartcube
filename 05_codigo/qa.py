@@ -1456,14 +1456,38 @@ def llenar_construccion(page, anio: str = "", semilla: str = "") -> None:
             page.wait_for_timeout(700)
     except Exception:
         pass
-    # Uso (idx 1) -> primera opcion valida.
+    # Uso (idx 1): esperar a que carguen las opciones tras elegir el tipo, y elegir una
+    # opcion real (no el placeholder 'Usos de ...'). Reintenta por timing.
     try:
-        selects = page.locator("select")
-        if selects.nth(1).input_value() in ("", None):
-            sel_primera_valida(1)
-            page.wait_for_timeout(900)
-    except Exception:
-        pass
+        puesto_uso = False
+        for _ in range(8):  # hasta ~4 s a que carguen los usos
+            selects = page.locator("select")
+            opts = [selects.nth(1).locator("option").nth(j).inner_text().strip()
+                    for j in range(selects.nth(1).locator("option").count())]
+            validas = [t for t in opts if t and "usos de" not in t.lower()
+                       and "seleccione" not in t.lower() and "tipo de unidad" not in t.lower()]
+            if validas:
+                # Preferir un uso de vivienda coherente si existe.
+                objetivo = None
+                for pref in ("Vivienda hasta 3 pisos", "Apartamentos 4 y más pisos"):
+                    if pref in validas:
+                        objetivo = pref
+                        break
+                if objetivo is None:
+                    objetivo = validas[0]
+                selects.nth(1).select_option(label=objetivo)
+                selects.nth(1).evaluate(
+                    "el => { el.dispatchEvent(new Event('input',{bubbles:true}));"
+                    " el.dispatchEvent(new Event('change',{bubbles:true})); }")
+                print(f"  Uso = {objetivo!r}")
+                puesto_uso = True
+                break
+            page.wait_for_timeout(500)
+        if not puesto_uso:
+            print("  [aviso] no se pudo fijar el Uso (opciones no cargaron).")
+        page.wait_for_timeout(900)
+    except Exception as e:
+        print(f"  [aviso] Uso: {type(e).__name__}")
 
     # Estado de conservacion (idx 2) -> Bueno.
     sel_por_opcion(2, "Bueno")

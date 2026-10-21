@@ -590,6 +590,12 @@ cartografica):
   el boton del icono `<span class="material-symbols-outlined text-lg">edit</span>` en la
   fila de la UC. Ese boton abre el modal "Editar UC A".
 - **Campos obligatorios de la UC al editar (si no, el Paso 7 da error):**
+  - **USO (OBLIGATORIO):** tras elegir Tipo unidad=Residencial, el desplegable 'Uso'
+    carga sus opciones con RETARDO. Hay que ESPERAR a que aparezcan (reintentar) y elegir
+    una opcion real (p. ej. "Vivienda hasta 3 pisos" o "Apartamentos 4 y mas pisos"),
+    NO dejarlo en el placeholder "Usos de Residencial...". Si queda sin uso, el modal
+    muestra "Falta: uso" y NO deja 'Agregar UC'/'Actualizar UC'. (El comando
+    `construccion` ya reintenta hasta cargar el uso y lo fija con evento change.)
   - Año de construccion (input min=1800, max=2026; puede venir en 0).
   - Calificacion catastral completa (16 desplegables: estructura/acabados/baño/cocina).
   - Total baños / habitaciones (valores coherentes de vivienda, no 0).
