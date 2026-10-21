@@ -915,9 +915,9 @@ wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
     0 ERRORES, 0 warnings, 51 OK. Quedo listo para 'Pasar borrador acto administrativo'
     y 'Pasar a calidad'. Titular distinto al de 0081 (datos no repetidos OK).
 
-> ESTADO Cambios de Propietario (21/10): 0081 y 0082 con cambio de propietario hecho y
-> 0 errores en Resumen. Pendiente que el USUARIO pulse 'Pasar borrador acto
-> administrativo' + 'Pasar a calidad' (acciones criticas) para cerrarlos.
+> ESTADO Cambios de Propietario (21/10): 0081 y 0082 CERRADOS A CALIDAD por el usuario
+> (cambio de propietario + 0 errores + 'Pasar borrador' + 'Pasar a calidad'). Resumenes
+> actualizados en sus carpetas (resumen_R-2026-0081.txt, resumen_R-2026-0082.txt).
 > AJUSTE PENDIENTE: el comando `entrar` a veces no cambia de tramite si ya hay uno
 > abierto (hay que resetear el buscador); en 0082 si cambio bien.
   - REGLA de calificacion: **CONSERVADORA** (sencillo/regular, bajo-medio puntaje). NO
