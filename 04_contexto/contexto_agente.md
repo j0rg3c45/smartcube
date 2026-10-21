@@ -575,6 +575,11 @@ cartografica):
 - Comando: `tramite3a [semilla] [destino]` (de corrido; edita calificacion UC; NO pasa
   a calidad). El resumen.txt debe indicar: terreno intacto + calificacion de UC
   actualizada.
+- **R-2026-0084 QUEDO LISTO (21/10/2026):** Mutacion 3a Cambio Destino. Direccion
+  estructurada, destino Habitacional mantenido, terreno sin cambios; el usuario cargo la
+  geometria de la construccion (altura), el agente edito la calificacion de la UC (año
+  2010, baños/habitaciones, calificacion conservadora) + avaluo 2025. Resumen: 0 ERRORES,
+  60 OK. Resumen en 03_tramites/12_tramite_R-2026-0084/resumen_R-2026-0084.txt.
 - **REGLA (editar UC):** la informacion de la Unidad de Construccion SOLO se edita con
   el boton del icono `<span class="material-symbols-outlined text-lg">edit</span>` en la
   fila de la UC. Ese boton abre el modal "Editar UC A".
