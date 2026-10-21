@@ -372,6 +372,13 @@ coherencia en el Paso 7 (Resumen) y marca error si hay destino habitacional sin
 construcción. (Al rellenar predios de prueba: si no se agrega construcción, elegir un
 destino de lote; si se agrega construcción, puede ser Habitacional/Comercial/etc.)
 
+> REGLA (Paso 1, Destino Económico en tramites CON construccion): si el tramite implica
+> construccion (p. ej. Mutacion 3a - Cambio Area Construida), y el predio viene como
+> "Lote Urbanizado No Construido", hay que CAMBIAR el Destino Economico a uno coherente
+> con un predio edificado (Habitacional por defecto; en otros tramites el agente elige
+> el mas logico: Comercial, Industrial, etc. segun el caso). No dejar destino de lote si
+> va a tener construccion (si no, el Paso 7 marcara error de coherencia destino-UC).
+
 ### Mejora pendiente: automatizar pasos repetitivos del wizard
 
 El usuario quiere que los pasos repetitivos del wizard (Fuente Administrativa con datos
@@ -513,6 +520,17 @@ Cuando haya que validar radicados (tecnica + juridica), el agente DA este paso a
 
 Resultados: reporte CSV + log en `05_codigo/reportes/`, capturas en `capturas/`.
 Durante la corrida: NO usar el navegador ni abrir DevTools.
+
+### Notas por tipo de trámite (revision manual 21/10/2026)
+
+- **R-2026-0061 — Mutación 3a Clase - Cambio Área Construida:**
+  - Paso 1 Predio: se EDITO la direccion a ESTRUCTURADA (Carrera 49 C # 41 B - 28,
+    reutilizando el 28 de la direccion de origen) y se CAMBIO el Destino Economico de
+    "Lote Urbanizado No Construido" a **Habitacional** (porque el tramite lleva
+    construccion). Caracterizacion LADM readonly (Tipo Predio/Derecho en "—").
+  - Paso 2 Propietario: NO requiere ajustes, viene completo (no falta nada).
+  - Pasos cartograficos (Terreno/Construccion): reserva del usuario; este tramite SI
+    lleva construccion (hay que cargar geometria de la UC).
 
 ### Tipos de trámite (ampliado, dry-run 19/10/2026)
 
