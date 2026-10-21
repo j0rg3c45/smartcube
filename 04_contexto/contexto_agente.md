@@ -904,6 +904,9 @@ wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
     con sexo None invalido"). El comando ahora dispara input+change por JS tras cada
     seleccion (helper `_select_spa`).
   - Dejar constancia de la distribucion de titulares en el resumen.txt del tramite.
+  - PROBADO OK (21/10) en R-2026-0081 modo sustitucion: elimino a FRANCISCO JAVIER
+    RINCON MEDELLIN y registro a LILIANA LUISA CARDENAS RIOS (CC 221558265, Femenino,
+    Dominio, 100%). El fix de evento change resolvio el error de sexo None.
   - REGLA de calificacion: **CONSERVADORA** (sencillo/regular, bajo-medio puntaje). NO
     calificar alto para no inflar el avaluo ni perjudicar al propietario. Coherente con
     la info de las plantas (vivienda estandar).
