@@ -827,6 +827,11 @@ wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
   (valor + letra), Numero del predio y Codigo postal con datos sinteticos unicos, y
   pulsa Actualizar. Probado en R-2026-0061 (quedo "Carrera 49 C # 41 B - 71").
   REGLA: cuando el usuario diga "editar la direccion", SIEMPRE dejarla ESTRUCTURADA.
+  REGLA de direcciones:
+   (a) NO repetir direcciones entre tramites (unicidad, como los demas datos sinteticos).
+   (b) Si la direccion ANTERIOR trae numeros (p. ej. "Mz C Lo 28 Km 1..." tiene 28 y 1),
+       REUTILIZAR alguno de esos numeros en la direccion estructurada editada, para
+       mantener coherencia con el dato de origen (la direccion trae pistas).
 
 > Nota mapeo Paso 3: los <select> van en grupos ciclicos. Puntos = 3 por fila
 > (Tipo de punto / Metodo / Punto de control). Linderos = 2 por fila (Orientacion /

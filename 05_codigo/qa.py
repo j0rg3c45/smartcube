@@ -90,6 +90,9 @@ PALABRAS_CRITICAS = ("guardar", "confirmar", "submit", "enviar", "aprobar",
 
 _pedir_confirmacion = True
 
+# Direcciones estructuradas ya usadas (firma vp/vg/num) para NO repetir entre tramites.
+_direcciones_usadas: set = set()
+
 
 def cargar_config() -> dict:
     load_dotenv(BASE_DIR / ".env")
@@ -584,8 +587,25 @@ def editar_direccion(page, semilla: str = "") -> None:
     'semilla' (p. ej. el radicado) fija la aleatoriedad.
     """
     import random
+    import re as _re
     if semilla:
         random.seed(semilla + "-dir")
+
+    # 0) Leer la direccion ACTUAL (antes de abrir el modal) para extraer sus numeros
+    #    como pista y reutilizarlos en la direccion estructurada.
+    numeros_pista = []
+    try:
+        cuerpo = page.locator("body").inner_text()
+        # Buscar la fila de direccion y sus numeros.
+        m = _re.search(r"Direcciones del Predio(.{0,400})", cuerpo, _re.S)
+        zona = m.group(1) if m else cuerpo
+        numeros_pista = [n for n in _re.findall(r"\b(\d{1,4})\b", zona)]
+        # Evitar tomar numeros del NPN (muy largos) o años.
+        numeros_pista = [n for n in numeros_pista if 1 <= int(n) <= 999][:6]
+        if numeros_pista:
+            print(f"  Numeros pista de la direccion anterior: {numeros_pista}")
+    except Exception:
+        pass
 
     # 1) Abrir el modal de editar si no esta abierto (busca el titulo 'Editar dirección').
     try:
@@ -650,12 +670,28 @@ def editar_direccion(page, semilla: str = "") -> None:
     else:
         print("  No se encontro 'Clase de via'.")
 
-    # Valores numericos coherentes y unicos.
-    vp_valor = str(random.randint(1, 120))
-    vp_letra = random.choice(["", "A", "B", "C"])
-    vg_valor = str(random.randint(1, 90))
-    vg_letra = random.choice(["", "A", "B"])
-    num_predio = str(random.randint(1, 99))
+    # Valores numericos coherentes y unicos. Si hay numeros pista de la direccion
+    # anterior, se reutiliza alguno (coherencia con el dato de origen).
+    def _pista_o_random(maximo: int, usados: set) -> str:
+        candidatos = [n for n in numeros_pista if n not in usados and 1 <= int(n) <= maximo]
+        if candidatos:
+            elegido = random.choice(candidatos)
+            usados.add(elegido)
+            return elegido
+        return str(random.randint(1, maximo))
+
+    _usados_pista: set = set()
+    # Generar direcciones unicas entre tramites (set global _direcciones_usadas).
+    for _ in range(50):
+        vp_valor = _pista_o_random(120, _usados_pista)
+        vp_letra = random.choice(["", "A", "B", "C"])
+        vg_valor = _pista_o_random(90, _usados_pista)
+        vg_letra = random.choice(["", "A", "B"])
+        num_predio = _pista_o_random(99, _usados_pista)
+        firma = f"{vp_valor}{vp_letra}-{vg_valor}{vg_letra}-{num_predio}"
+        if firma not in _direcciones_usadas:
+            _direcciones_usadas.add(firma)
+            break
     cod_postal = f"76{random.randint(1000, 9999)}"  # 6 digitos, prefijo Valle
 
     # 4) Llenar los campos de texto por placeholder (del modal).
