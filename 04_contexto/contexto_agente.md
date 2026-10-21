@@ -379,6 +379,14 @@ destino de lote; si se agrega construcción, puede ser Habitacional/Comercial/et
 > con un predio edificado (Habitacional por defecto; en otros tramites el agente elige
 > el mas logico: Comercial, Industrial, etc. segun el caso). No dejar destino de lote si
 > va a tener construccion (si no, el Paso 7 marcara error de coherencia destino-UC).
+>
+> REGLA (coherencia Destino vs DIRECCION/tipo de predio): el destino debe ser COHERENTE
+> con lo que indica la direccion. Si la direccion dice APARTAMENTO / CASA (predio
+> residencial, p. ej. "...APARTAMENTO 305 TORRE C"), el Destino se mantiene/pone
+> HABITACIONAL (NO cambiar a Comercial/Industrial). Confirmado en R-2026-0084 (Cambio
+> Destino Economico): aunque el tramite es de cambio de destino, por ser un apartamento
+> el destino se MANTIENE Habitacional. El cambio de destino aplica solo si el uso real
+> del predio cambia de forma coherente.
 
 ### Mejora pendiente: automatizar pasos repetitivos del wizard
 
@@ -887,6 +895,9 @@ wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
   (valor + letra), Numero del predio y Codigo postal con datos sinteticos unicos, y
   pulsa Actualizar. Probado en R-2026-0061 (quedo "Carrera 49 C # 41 B - 71").
   REGLA: cuando el usuario diga "editar la direccion", SIEMPRE dejarla ESTRUCTURADA.
+  REGLA (IMPORTANTE): si la direccion YA es **Estructurada** y esta bien, NO se toca
+  (no editar ni re-generar). Solo se edita/estructura cuando la direccion es "No
+  Estructurada". Confirmado en R-2026-0084 (apartamento en PH, direccion estructurada OK).
   REGLA de direcciones:
    (a) NO repetir direcciones entre tramites (unicidad, como los demas datos sinteticos).
    (b) Si la direccion ANTERIOR trae numeros (p. ej. "Mz C Lo 28 Km 1..." tiene 28 y 1),
