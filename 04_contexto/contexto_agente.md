@@ -580,6 +580,12 @@ cartografica):
   geometria de la construccion (altura), el agente edito la calificacion de la UC (año
   2010, baños/habitaciones, calificacion conservadora) + avaluo 2025. Resumen: 0 ERRORES,
   60 OK. Resumen en 03_tramites/12_tramite_R-2026-0084/resumen_R-2026-0084.txt.
+- **R-2026-0088 (21/10/2026):** Mutacion 3a Cambio Area Construida, predio #23428,
+  propietario JAMUNDI URBANIZADORA. El comando `tramite3a` proceso TODO lo alfanumerico
+  de corrido (predio, propietario, terreno/construccion avanzados, fuente admin, avaluo)
+  y llego al Resumen con 1 ERROR, 60 OK. El error es `3_ET_CF_108` EXACTITUD TEMATICA:
+  area digitada 1921 m2 vs poligono 2167.96 m2 (11.4%, >10%). ES AJUSTE CARTOGRAFICO DEL
+  USUARIO (corregir area/geometria del terreno) + re-validar. Pendiente ajuste del usuario.
 - **REGLA (editar UC):** la informacion de la Unidad de Construccion SOLO se edita con
   el boton del icono `<span class="material-symbols-outlined text-lg">edit</span>` en la
   fila de la UC. Ese boton abre el modal "Editar UC A".
