@@ -60,6 +60,9 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
                           Paso 1: edita la direccion del predio dejandola ESTRUCTURADA
                           (LADM) y la llena con datos sinteticos (clase de via, valores,
                           numero, codigo postal) + Actualizar. Ej: editardireccion R-2026-0061
+    destino [valor]       Paso 1: cambia el Destino Económico (def. Habitacional). Usar
+                          en tramites CON construccion para no dejar destino de lote.
+                          Ej: destino Habitacional | destino Comercial
     agregarfoto           pulsa '+ Agregar foto' (opcional)
     subirfoto <ruta>      carga un archivo de imagen
     continuar             pulsa 'Continuar' para avanzar de paso
@@ -733,6 +736,49 @@ def editar_direccion(page, semilla: str = "") -> None:
         print("  No se encontro el boton 'Actualizar'. Revisa el modal.")
 
 
+def cambiar_destino(page, destino: str = "Habitacional") -> None:
+    """Cambia el 'Destino Económico' del predio (Paso 1) al valor indicado.
+
+    Regla: en tramites con construccion (p. ej. Mutacion 3a - Cambio Area Construida)
+    el destino NO debe quedar como 'Lote ... No Construido'; debe ser coherente con un
+    predio edificado (Habitacional por defecto; tambien Comercial, Industrial, etc.).
+
+    Localiza el <select> de destino por sus opciones caracteristicas (contiene
+    'Habitacional' y 'Comercial'), no por indice.
+    """
+    destino = (destino or "Habitacional").strip()
+    selects = page.locator("select")
+    sel_destino = None
+    for i in range(selects.count()):
+        try:
+            opts = [selects.nth(i).locator("option").nth(j).inner_text().strip()
+                    for j in range(selects.nth(i).locator("option").count())]
+        except Exception:
+            continue
+        if "Habitacional" in opts and "Comercial" in opts:
+            sel_destino = selects.nth(i)
+            opciones = opts
+            break
+    if sel_destino is None:
+        print("  No se encontro el desplegable de Destino Económico.")
+        return
+    # Coincidencia exacta o por prefijo (tolerante a tildes/variaciones simples).
+    objetivo = None
+    for t in opciones:
+        if t.lower() == destino.lower() or t.lower().startswith(destino.lower()):
+            objetivo = t
+            break
+    if objetivo is None:
+        print(f"  '{destino}' no esta entre las opciones de Destino. Opciones: {opciones[:8]}...")
+        return
+    try:
+        sel_destino.select_option(label=objetivo)
+        page.wait_for_timeout(400)
+        print(f"  Destino Económico = {objetivo!r}")
+    except Exception as e:
+        print(f"  No se pudo cambiar el destino: {type(e).__name__}: {e}")
+
+
 def caracterizacion_ladm(page, tipo_predio: str = "Privado",
                          tipo_derecho: str = "Dominio") -> None:
     """Llena la 'Caracterizacion LADM del Predio' (Paso 1): Tipo de Predio y
@@ -1364,6 +1410,9 @@ def repl(page, base_url: str) -> None:
             elif cmd == "editardireccion":
                 # Uso: editardireccion [semilla]  -> estructura y llena la direccion
                 editar_direccion(page, arg.strip())
+            elif cmd == "destino":
+                # Uso: destino [valor]  (def. Habitacional)
+                cambiar_destino(page, arg.strip() or "Habitacional")
             elif cmd == "direccion":
                 # Uso: direccion <vpValor> <vpLetra> <vgValor> <vgLetra> <numPredio>
                 partes_dir = arg.split()
