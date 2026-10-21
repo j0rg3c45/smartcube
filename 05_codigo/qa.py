@@ -829,52 +829,53 @@ def nuevo_propietario(page, semilla: str = "", participacion: str = "100") -> No
         print("  No se encontro 'Tipo Interesado'. ¿Es el Paso 2 de Cambio de Propietario?")
         return
 
-    # 2) Tipo de Documento = Cédula de Ciudadanía.
-    eligir_doc = elegir({"Cédula de Ciudadanía", "NIT"}, "Cédula de Ciudadanía")
-    if eligir_doc:
+    # 2) Tipo de Documento = Cédula de Ciudadanía (buscar el select que la contenga).
+    if elegir({"Cédula de Ciudadanía"}, "Cédula de Ciudadanía"):
         print("  Tipo de Documento = Cédula de Ciudadanía")
+        page.wait_for_timeout(400)
 
-    # 3) Numero de documento.
-    try:
-        caja_doc = page.locator("input[placeholder*='documento'], input[placeholder*='Documento']")
-        # Si no hay placeholder, usar el input junto al boton Buscar: lo ubicamos por orden.
-        if caja_doc.count() == 0:
-            caja_doc = page.get_by_label("Número Documento")
-        if caja_doc.count() > 0:
-            caja_doc.first.fill(p["doc"])
-            print(f"  Nº Documento = {p['doc']}")
-    except Exception:
-        pass
-
-    # 4) Nombres y apellidos por label.
-    def fill_label(label, valor):
+    # 3-6) Campos de texto por POSICION (mas confiable que el label en esta SPA).
+    # Orden de inputs de texto del formulario de nuevo interesado:
+    #   [0] Nº Documento  [1] Razon Social  [2] Primer Nombre  [3] Segundo Nombre
+    #   [4] Primer Apellido  [5] Segundo Apellido  [6] % Participacion (number)
+    textos = page.locator("input[type='text'], input:not([type])")
+    def fill_idx(idx, valor, etiqueta):
         try:
-            loc = page.get_by_label(label)
-            if loc.count() > 0:
-                loc.first.fill(valor)
+            if idx < textos.count():
+                textos.nth(idx).fill(valor)
+                print(f"  {etiqueta} = {valor}")
                 return True
         except Exception:
             pass
+        print(f"  [aviso] no se pudo llenar {etiqueta} (idx {idx}).")
         return False
-    fill_label("Primer Nombre", p["n1"])
-    fill_label("Segundo Nombre", p["n2"])
-    fill_label("Primer Apellido", p["a1"])
-    fill_label("Segundo Apellido", p["a2"])
+
+    fill_idx(0, p["doc"], "Nº Documento")
+    # idx 1 = Razon Social (solo juridicas) -> se deja vacio para persona natural.
+    fill_idx(2, p["n1"], "Primer Nombre")
+    fill_idx(3, p["n2"], "Segundo Nombre")
+    fill_idx(4, p["a1"], "Primer Apellido")
+    fill_idx(5, p["a2"], "Segundo Apellido")
     print(f"  Interesado = {p['n1']} {p['n2']} {p['a1']} {p['a2']} ({p['sexo']})")
 
-    # 5) Sexo.
+    # Sexo y Tipo Derecho (desplegables por opciones).
     elegir({"Masculino", "Femenino"}, p["sexo"])
-    # 6) Tipo Derecho Catastral = Dominio.
     elegir({"Dominio", "Usufructo"}, "Dominio")
     print("  Tipo Derecho = Dominio")
-    # Autorreconocimiento campesino [3]: NO se toca (no obligatorio, dato sensible).
+    # Autorreconocimiento campesino / etnico: NO se tocan (no obligatorios, sensibles).
 
-    # 7) % Participacion.
-    if not fill_label("% Participación", str(participacion)):
+    # 7) % Participacion: input numerico (placeholder 'Ej: 100').
+    puesto = False
+    try:
+        caja_part = page.locator("input[type='number']")
+        if caja_part.count() > 0:
+            caja_part.last.fill(str(participacion))
+            puesto = True
+    except Exception:
+        pass
+    if not puesto:
         try:
-            caja_part = page.locator("input[placeholder*='%'], input[placeholder*='articipaci']")
-            if caja_part.count() > 0:
-                caja_part.first.fill(str(participacion))
+            page.locator("input[placeholder*='100']").first.fill(str(participacion))
         except Exception:
             pass
     print(f"  % Participación = {participacion}")
