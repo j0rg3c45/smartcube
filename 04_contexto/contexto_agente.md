@@ -567,6 +567,12 @@ no lo pudo procesar (esperaba 7-8 pasos) y lo marco "no determinado".
   masa/sismo, inundacion/ribera, socavacion/erosion, avenida torrencial; con nº de acta
   y fecha ficticia, sin repetir) + fuente administrativa, avanza al Resumen y valida.
   NO pasa a calidad (lo confirma el usuario).
+  - PROBADO OK (21/10) en R-2026-0086: motivo "Predio sumergido de forma permanente por
+    desbordamiento y cambio de cauce del rio el 16/06/2026, con perdida total por
+    afectacion de ribera, segun informe pericial de visita de campo No. 816". Resumen:
+    0 ERRORES, 0 warnings, 30 OK. Propietario DAGUA IGNACIO ZAMANATE (se conserva). Listo
+    para pasar a calidad. (El conteo en consola salio '?' por el lector regex, pero la
+    captura confirma 0 errores.)
 
 ### Tipos de trámite (ampliado, dry-run 19/10/2026)
 
