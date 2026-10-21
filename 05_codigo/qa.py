@@ -56,6 +56,10 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
                           Paso 1: llena la Caracterizacion LADM (Tipo de Predio /
                           Tipo de Derecho). Def: Privado | Dominio.
                           Ej: caracterizacion Privado | Dominio
+    editardireccion [semilla]
+                          Paso 1: edita la direccion del predio dejandola ESTRUCTURADA
+                          (LADM) y la llena con datos sinteticos (clase de via, valores,
+                          numero, codigo postal) + Actualizar. Ej: editardireccion R-2026-0061
     agregarfoto           pulsa '+ Agregar foto' (opcional)
     subirfoto <ruta>      carga un archivo de imagen
     continuar             pulsa 'Continuar' para avanzar de paso
@@ -563,6 +567,134 @@ def linderos_masivo(page, ruta_geojson: str) -> None:
           f"NPN/nombre: {hechos_txt}")
     print(f"  Ya tenian valor: {saltados} | errores: {errores}")
     print("  Recuerda pulsar 'Guardar' para fijar los linderos (boton Guardar).")
+
+
+def editar_direccion(page, semilla: str = "") -> None:
+    """Edita la direccion del predio (Paso 1) dejandola ESTRUCTURADA (LADM) y la
+    llena con datos sinteticos coherentes y unicos, luego pulsa 'Actualizar'.
+
+    Flujo:
+      1. Abre el modal de editar (icono lapiz de la primera direccion) si no esta abierto.
+      2. Cambia 'Tipo de direccion' a 'Estructurada'.
+      3. Llena Via Principal (Clase de via, Valor, Letra), Via Generadora (Valor, Letra),
+         Numero del predio y Codigo postal.
+      4. Pulsa 'Actualizar'.
+
+    Los valores numericos se generan aleatorios (no repetidos) para variar por tramite.
+    'semilla' (p. ej. el radicado) fija la aleatoriedad.
+    """
+    import random
+    if semilla:
+        random.seed(semilla + "-dir")
+
+    # 1) Abrir el modal de editar si no esta abierto (busca el titulo 'Editar dirección').
+    try:
+        titulo = page.get_by_text("Editar dirección", exact=False)
+        if titulo.count() == 0:
+            # Intentar abrir con el icono de editar de la primera fila.
+            lapiz = page.get_by_text("edit", exact=True)
+            if lapiz.count() > 0:
+                lapiz.first.click()
+                page.wait_for_timeout(800)
+    except Exception:
+        pass
+
+    # 2) Cambiar Tipo de direccion a Estructurada (el <select> del modal con esa opcion).
+    selects = page.locator("select")
+    sel_tipo = None
+    for i in range(selects.count()):
+        opts = [o.inner_text().strip() for o in
+                [selects.nth(i).locator("option").nth(j) for j in
+                 range(selects.nth(i).locator("option").count())]]
+        if "Estructurada" in opts and "No Estructurada" in opts:
+            sel_tipo = selects.nth(i)
+            break
+    if sel_tipo is not None:
+        try:
+            sel_tipo.select_option(label="Estructurada")
+            page.wait_for_timeout(900)  # aparecen los campos estructurados
+            print("  Tipo de direccion = Estructurada")
+        except Exception as e:
+            print(f"  No se pudo cambiar a Estructurada: {type(e).__name__}")
+    else:
+        print("  No se encontro el desplegable 'Tipo de direccion' del modal.")
+
+    # Re-leer selects tras cambiar a estructurada (aparecen clase de via, sectores).
+    selects = page.locator("select")
+
+    def elegir_por_opciones(contiene_set: set, valor: str) -> bool:
+        """Elige en el <select> cuyas opciones contengan las palabras dadas."""
+        for i in range(selects.count()):
+            try:
+                opts = [selects.nth(i).locator("option").nth(j).inner_text().strip()
+                        for j in range(selects.nth(i).locator("option").count())]
+            except Exception:
+                continue
+            joined = " ".join(opts).lower()
+            if all(c.lower() in joined for c in contiene_set):
+                try:
+                    selects.nth(i).select_option(label=valor)
+                    return True
+                except Exception:
+                    # fallback: primera opcion valida
+                    for t in opts:
+                        if t and not t.startswith("—") and not t.lower().startswith("seleccione"):
+                            selects.nth(i).select_option(label=t)
+                            return True
+        return False
+
+    # 3) Clase de via (Calle/Carrera/...). Elegimos una coherente al azar.
+    clase = random.choice(["Calle", "Carrera", "Diagonal", "Transversal", "Avenida"])
+    if elegir_por_opciones({"Calle", "Carrera"}, clase):
+        print(f"  Clase de via = {clase}")
+    else:
+        print("  No se encontro 'Clase de via'.")
+
+    # Valores numericos coherentes y unicos.
+    vp_valor = str(random.randint(1, 120))
+    vp_letra = random.choice(["", "A", "B", "C"])
+    vg_valor = str(random.randint(1, 90))
+    vg_letra = random.choice(["", "A", "B"])
+    num_predio = str(random.randint(1, 99))
+    cod_postal = f"76{random.randint(1000, 9999)}"  # 6 digitos, prefijo Valle
+
+    # 4) Llenar los campos de texto por placeholder (del modal).
+    def fill_ph(ph: str, valor: str, etiqueta: str):
+        loc = page.locator(f"input[placeholder='{ph}']")
+        if loc.count() > 0:
+            try:
+                loc.first.fill(valor)
+                print(f"  {etiqueta} = {valor!r}")
+                return
+            except Exception:
+                pass
+    # Via principal: Valor (Ej: 10), Letra (Ej: A primera).
+    fill_ph("Ej: 10", vp_valor, "Via principal valor")
+    letras = page.locator("input[placeholder='Ej: A']")
+    if letras.count() > 0 and vp_letra:
+        letras.nth(0).fill(vp_letra); print(f"  Via principal letra = {vp_letra!r}")
+    # Via generadora: Valor (Ej: 5), Letra (Ej: A segunda).
+    fill_ph("Ej: 5", vg_valor, "Via generadora valor")
+    if letras.count() > 1 and vg_letra:
+        letras.nth(1).fill(vg_letra); print(f"  Via generadora letra = {vg_letra!r}")
+    # Numero del predio (Ej: 42) y codigo postal (6 digitos).
+    fill_ph("Ej: 42", num_predio, "Numero del predio")
+    fill_ph("6 dígitos", cod_postal, "Codigo postal")
+
+    page.wait_for_timeout(500)
+
+    # 5) Pulsar 'Actualizar'.
+    boton = page.get_by_role("button", name="Actualizar")
+    if boton.count() == 0:
+        boton = page.locator("button", has_text="Actualizar")
+    if boton.count() > 0:
+        boton.first.click()
+        page.wait_for_timeout(1200)
+        page.wait_for_load_state("networkidle")
+        print(f"  Direccion estructurada ACTUALIZADA: {clase} {vp_valor}{vp_letra} "
+              f"# {vg_valor}{vg_letra} - {num_predio}, CP {cod_postal}")
+    else:
+        print("  No se encontro el boton 'Actualizar'. Revisa el modal.")
 
 
 def caracterizacion_ladm(page, tipo_predio: str = "Privado",
@@ -1193,6 +1325,9 @@ def repl(page, base_url: str) -> None:
                 tp = p1.strip() or "Privado"
                 td = p2.strip() or "Dominio"
                 caracterizacion_ladm(page, tp, td)
+            elif cmd == "editardireccion":
+                # Uso: editardireccion [semilla]  -> estructura y llena la direccion
+                editar_direccion(page, arg.strip())
             elif cmd == "direccion":
                 # Uso: direccion <vpValor> <vpLetra> <vgValor> <vgLetra> <numPredio>
                 partes_dir = arg.split()

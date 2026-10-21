@@ -713,6 +713,21 @@ el código de comandos se puede actualizar sin reiniciar el navegador:
 > - Paso 2 (Propietario): NO es solo lectura; se puede EDITAR el propietario y agregar
 >   nuevos interesados. Aquí fue donde se corrigió el % de participación de 0 a 100.
 
+#### Direcciones del Predio (Paso 1): editar vs añadir
+
+En la seccion "Direcciones del Predio" del Paso 1 hay 2 opciones por cada dato:
+- **Editar** la direccion existente: icono lapiz en la fila (ACCIONES).
+  `<span class="material-symbols-outlined text-lg">edit</span>` (tambien hay icono de
+  eliminar/papelera). Abre el modal para corregir la direccion actual.
+- **Añadir** otra direccion: boton "+ Añadir Dirección" arriba a la derecha.
+  `<button ...><span class="material-symbols-outlined text-base">add</span>Añadir Dirección</button>`.
+  Abre el modal "Nueva direccion" (estructurada o no estructurada).
+
+Selectores utiles:
+- Editar (primera fila): `page.locator("span.material-symbols-outlined", has_text="edit").first`
+  o el boton/lapiz de la fila. En REPL: `click texto=edit` (toma el primero).
+- Añadir: `click button:has-text("Añadir Dirección")`.
+
 #### Formulario "Nueva dirección" (Paso 1, estructurada LADM)
 
 Campos: Tipo de dirección (Estructurada/No Estructurada), checkbox "principal";
@@ -806,6 +821,12 @@ wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
 - `caracterizacion [TipoPredio]|[TipoDerecho]` — Paso 1: llena Caracterización LADM
   (Privado / Dominio). OJO: en Efectos Registrales esos controles son READONLY y el
   comando dara TimeoutError (no es error del comando, es que la plataforma no deja).
+- `editardireccion [semilla]` — Paso 1: edita la direccion del predio dejandola
+  ESTRUCTURADA (LADM). Abre el modal de editar (si no esta), cambia 'Tipo de direccion'
+  a Estructurada, llena Via Principal (clase de via + valor + letra), Via Generadora
+  (valor + letra), Numero del predio y Codigo postal con datos sinteticos unicos, y
+  pulsa Actualizar. Probado en R-2026-0061 (quedo "Carrera 49 C # 41 B - 71").
+  REGLA: cuando el usuario diga "editar la direccion", SIEMPRE dejarla ESTRUCTURADA.
 
 > Nota mapeo Paso 3: los <select> van en grupos ciclicos. Puntos = 3 por fila
 > (Tipo de punto / Metodo / Punto de control). Linderos = 2 por fila (Orientacion /
