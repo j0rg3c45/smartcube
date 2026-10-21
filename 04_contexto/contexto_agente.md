@@ -850,6 +850,21 @@ wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
    (b) Si la direccion ANTERIOR trae numeros (p. ej. "Mz C Lo 28 Km 1..." tiene 28 y 1),
        REUTILIZAR alguno de esos numeros en la direccion estructurada editada, para
        mantener coherencia con el dato de origen (la direccion trae pistas).
+- `destino [valor]` — Paso 1: cambia el Destino Económico (def. Habitacional). Usar en
+  tramites CON construccion para no dejar destino de lote (si no, el Paso 7 marca error
+  de coherencia destino-UC). Ej: `destino Habitacional` / `destino Comercial`.
+- `construccion [anio] [semilla]` — Paso 4: llena el modal 'Nueva unidad de construccion'
+  con datos sinteticos de vivienda: tipo Residencial, uso, año (param o aleatorio
+  1990-2020), estado, y la CALIFICACION CATASTRAL completa (16 desplegables:
+  estructura/acabados/baño/cocina) + observaciones. Requiere que la GEOMETRIA (plantas)
+  ya este cargada por el usuario. Luego revisar y pulsar 'Agregar UC'
+  (`click button:has-text("Agregar UC")`). Probado en R-2026-0061 (UC nueva creada).
+  - REGLA de calificacion: **CONSERVADORA** (sencillo/regular, bajo-medio puntaje). NO
+    calificar alto para no inflar el avaluo ni perjudicar al propietario. Coherente con
+    la info de las plantas (vivienda estandar).
+  - REGLA de variacion: los datos deben VARIAR y NO repetirse entre tramites. Usar la
+    semilla (radicado) para variar por tramite. PENDIENTE: dar mas variacion a la
+    calificacion dentro del rango conservador (hoy usa un set fijo conservador).
 
 > Nota mapeo Paso 3: los <select> van en grupos ciclicos. Puntos = 3 por fila
 > (Tipo de punto / Metodo / Punto de control). Linderos = 2 por fila (Orientacion /

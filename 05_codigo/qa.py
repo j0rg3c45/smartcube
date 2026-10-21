@@ -848,29 +848,28 @@ def llenar_construccion(page, anio: str = "", semilla: str = "") -> None:
     # (Malo/Regular/Bueno/Excelente) se dejan en 'Regular'.
     selects = page.locator("select")
     n = selects.count()
-    # Preferencias por indice (se usa 'contiene' para robustez). Perfil conservador:
-    preferencias = {
-        # Estructura (lo estructural suele ser lo real del inmueble: ladrillo/bloque).
-        3: "Ladrillo, bloque",            # Armazon
-        4: "Bahareque, adobe, tapia",     # Muros (sencillo)
-        5: "Zinc, teja de barro",         # Cubierta (sencilla)
-        6: "Regular",                      # subtotal estructura
-        # Acabados (conservador / sencillo).
-        7: "Sencilla",                     # Fachada
-        8: "Pañete",                       # Cubrimiento de muros (sencillo)
-        9: "Cemento, madera burda",        # Piso (sencillo)
-        10: "Regular",                     # subtotal acabados
-        # Baño (sencillo).
-        11: "Pequeño",                     # Tamaño de baño
-        12: "Sencillo",                    # Mobiliario de baño
-        13: "Pañete, baldosa común",       # Enchape de baño
-        14: "Regular",                     # subtotal baño
-        # Cocina (sencilla).
-        15: "Pequeña",                     # Tamaño de cocina
-        16: "Sencillo",                    # Mobiliario de cocina
-        17: "Pañete, baldosa",             # Enchape de cocina
-        18: "Regular",                     # subtotal cocina
+    # Preferencias por indice. Perfil CONSERVADOR con VARIACION: por cada campo hay
+    # varias opciones de bajo-medio puntaje y se elige una al azar (semilla por tramite),
+    # de modo que la calificacion sea conservadora pero DIFERENTE entre tramites.
+    opciones_conservadoras = {
+        3: ["Ladrillo, bloque", "Prefabricado", "Concreto hasta tres pisos"],  # Armazon
+        4: ["Bahareque, adobe, tapia", "Madera", "Concreto prefabricado"],     # Muros
+        5: ["Zinc, teja de barro", "Eternit o teja de barro", "Materiales de desecho"],  # Cubierta
+        6: ["Regular", "Bueno"],                                               # subtotal
+        7: ["Pobre", "Sencilla", "Regular"],                                   # Fachada
+        8: ["Sin cubrimiento", "Pañete", "Estuco"],                            # Cubrim. muros
+        9: ["Tierra pisada", "Cemento, madera burda", "Baldosa común"],        # Piso
+        10: ["Regular", "Bueno"],                                              # subtotal
+        11: ["Pequeño", "Mediano"],                                            # Tamaño baño
+        12: ["Pobre", "Sencillo", "Regular"],                                  # Mobiliario baño
+        13: ["Sin cubrimiento", "Pañete, baldosa común", "Baldosín unicolor"], # Enchape baño
+        14: ["Regular", "Bueno"],                                             # subtotal
+        15: ["Pequeña", "Mediana"],                                           # Tamaño cocina
+        16: ["Pobre", "Sencillo", "Regular"],                                 # Mobiliario cocina
+        17: ["Sin cubrimiento", "Pañete, baldosa", "Baldosín unicolor"],      # Enchape cocina
+        18: ["Regular", "Bueno"],                                             # subtotal
     }
+    preferencias = {idx: random.choice(ops) for idx, ops in opciones_conservadoras.items()}
     hechos = 0
     for idx in range(3, min(n, 19)):
         pref = preferencias.get(idx)
