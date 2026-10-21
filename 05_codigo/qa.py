@@ -862,7 +862,10 @@ def nuevo_propietario(page, semilla: str = "", participacion: str = "100") -> No
     elegir({"Masculino", "Femenino"}, p["sexo"])
     elegir({"Dominio", "Usufructo"}, "Dominio")
     print("  Tipo Derecho = Dominio")
-    # Autorreconocimiento campesino / etnico: NO se tocan (no obligatorios, sensibles).
+    # Autorreconocimiento etnico = Ninguno (explicito; no asignar etnia ficticia).
+    if elegir({"Indígena", "Afrocolombiano", "Ninguno"}, "Ninguno"):
+        print("  Autorreconocimiento étnico = Ninguno")
+    # Autorreconocimiento campesino: checkbox -> se deja SIN marcar.
 
     # 7) % Participacion: input numerico (placeholder 'Ej: 100').
     puesto = False
@@ -880,17 +883,34 @@ def nuevo_propietario(page, semilla: str = "", participacion: str = "100") -> No
             pass
     print(f"  % Participación = {participacion}")
 
-    page.wait_for_timeout(500)
+    # Disparar eventos de cambio: hacer blur/Tab desde el ultimo campo para que la SPA
+    # registre los valores antes de agregar (si no, el boton agrega con datos vacios).
+    try:
+        page.keyboard.press("Tab")
+    except Exception:
+        pass
+    page.wait_for_timeout(1000)
 
-    # 8) Agregar Propietario.
+    # 8) Agregar Propietario (contar filas antes/despues para verificar que se agrego).
+    def filas_propietarios():
+        try:
+            return page.locator("table tbody tr").count()
+        except Exception:
+            return 0
+    antes = filas_propietarios()
     boton = page.get_by_role("button", name="Agregar Propietario")
     if boton.count() == 0:
         boton = page.locator("button", has_text="Agregar Propietario")
     if boton.count() > 0:
         boton.first.click()
-        page.wait_for_timeout(1200)
+        page.wait_for_timeout(1500)
         page.wait_for_load_state("networkidle")
-        print("  'Agregar Propietario' pulsado. Revisa que el nuevo interesado aparezca en la lista.")
+        despues = filas_propietarios()
+        if despues > antes:
+            print(f"  'Agregar Propietario' OK: la lista paso de {antes} a {despues} propietarios.")
+        else:
+            print(f"  AVISO: tras 'Agregar Propietario' la lista sigue en {despues} filas. "
+                  f"Revisa si falta algun campo obligatorio o pulsar de nuevo.")
     else:
         print("  No se encontro el boton 'Agregar Propietario'. Revisa el formulario.")
 
