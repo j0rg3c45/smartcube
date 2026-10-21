@@ -1074,7 +1074,11 @@ destacados, tabla consolidada (hallazgos 1..23), recomendaciones, conclusiones, 
 m2, 45.3%).
 
 ESTADO (21/10/2026): el USUARIO agrego la IMAGEN SOPORTE del Anexo A (error de area de
-0061) y realizo AJUSTES MANUALES al documento (paso de 42 KB a 461 KB). 
+0061) y realizo AJUSTES MANUALES al documento. Luego se agrego de forma INCREMENTAL la
+"Recomendación adicional: Implementación de subestados, bitácora interna y trazabilidad
+de avance en el flujo de trámites" (subestados operativos, indicador visual de progreso
+pasos 1-7, bitacora/log de intervencion, panel de seguimiento para lideres), homogenea
+con las recomendaciones previas (NPN 30 digitos y copiado en linderos).
 
 > REGLA: el informe Word tiene EDICIONES MANUALES del usuario. NO regenerarlo desde cero
 > con script (se perderian sus cambios y la imagen). Si hay que agregar algo por codigo,
