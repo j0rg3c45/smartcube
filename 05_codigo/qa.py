@@ -977,15 +977,31 @@ def nuevo_propietario(page, semilla: str = "", participacion: str = "100",
 
 
 def _direccion_es_estructurada(page) -> bool:
-    """True si la direccion principal del predio ya es Estructurada (no hay que tocarla)."""
+    """True si la direccion principal del predio ya es Estructurada (no hay que tocarla).
+
+    Lee el tipo desde la CELDA de la tabla 'Direcciones del Predio' (columna TIPO),
+    no del cuerpo completo (mas robusto). Por seguridad, ante cualquier duda devuelve
+    True (preferir NO editar una direccion que ya existe)."""
     try:
+        # Celdas de la primera columna (TIPO) de la tabla de direcciones.
+        filas = page.locator("table tbody tr")
+        for i in range(filas.count()):
+            t = filas.nth(i).inner_text()
+            if "Estructurada" in t or "Carrera" in t or "Calle" in t or "Avenida" in t:
+                if "No Estructurada" in t:
+                    return False
+                if "Estructurada" in t:
+                    return True
+        # Si no se pudo determinar por la tabla, revisar el cuerpo.
         cuerpo = page.locator("body").inner_text()
-        # En la seccion 'Direcciones del Predio', buscar la etiqueta de tipo.
-        m = re.search(r"Direcciones del Predio(.{0,600})", cuerpo, re.S)
-        zona = m.group(1) if m else cuerpo
-        return "Estructurada" in zona and "No Estructurada" not in zona
+        if "No Estructurada" in cuerpo:
+            return False
+        if "Estructurada" in cuerpo:
+            return True
     except Exception:
-        return False
+        pass
+    # Ante la duda, NO editar (asumir estructurada).
+    return True
 
 
 def _editar_calificacion_uc(page, semilla: str = "") -> bool:
