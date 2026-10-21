@@ -1406,24 +1406,33 @@ def llenar_construccion(page, anio: str = "", semilla: str = "") -> None:
     # Estado de conservacion (idx 2) -> Bueno.
     sel_por_opcion(2, "Bueno")
 
-    # Año de construccion (texto obligatorio).
+    # Año de construccion (obligatorio). El input del año es el unico con min=1800
+    # (max=2026). Puede venir con value='0', por eso NO basta buscar 'vacio'.
     anio = (anio or "").strip() or str(random.randint(1990, 2020))
-    cajas_anio = page.locator("input")
-    # Mejor por el valor placeholder/etiqueta: buscar input numerico vacio cerca de 'Año'.
+    puesto = False
     try:
-        # El año suele ser un input de numero; lo ubicamos por su proximidad no es trivial,
-        # usamos el primer input vacio tipo number del modal.
-        inp_anio = page.locator("input[type='number'], input[inputmode='numeric']")
-        puesto = False
-        for i in range(inp_anio.count()):
-            if inp_anio.nth(i).input_value() in ("", None):
-                inp_anio.nth(i).fill(anio)
-                puesto = True
-                break
-        if puesto:
-            print(f"  Año construccion = {anio}")
+        inp = page.locator("input[min='1800']")
+        if inp.count() > 0:
+            inp.first.fill(anio)
+            inp.first.evaluate(
+                "el => { el.dispatchEvent(new Event('input',{bubbles:true}));"
+                " el.dispatchEvent(new Event('change',{bubbles:true})); }")
+            puesto = True
     except Exception:
         pass
+    if not puesto:
+        # Respaldo: input number con value 0 o vacio (evitando readonly).
+        try:
+            inp = page.locator("input[type='number']:not([readonly])")
+            for i in range(inp.count()):
+                v = inp.nth(i).input_value()
+                if v in ("", "0", None):
+                    inp.nth(i).fill(anio)
+                    puesto = True
+                    break
+        except Exception:
+            pass
+    print(f"  Año construccion = {anio}" + ("" if puesto else " [aviso: no se pudo fijar]"))
 
     # Calificacion catastral: perfil CONSERVADOR (sencillo/regular), coherente con una
     # vivienda estandar. NO calificar alto (eso subiria el avaluo y perjudicaria al
@@ -1465,7 +1474,24 @@ def llenar_construccion(page, anio: str = "", semilla: str = "") -> None:
             hechos += 1
     print(f"  Calificacion catastral: {hechos} desplegables llenados.")
 
-    # Baños / habitaciones / locales (si estan en 0, dejar valores coherentes).
+    # Total baños / habitaciones / locales: valores coherentes de vivienda (variados,
+    # no repetidos). Son inputs number con min=0 (los 3 editables, no readonly).
+    banos = random.randint(1, 3)
+    habitaciones = random.randint(2, 5)
+    locales = 0  # vivienda residencial: sin locales
+    try:
+        inp0 = page.locator("input[type='number'][min='0']:not([readonly])")
+        # Orden esperado: [0]=Total baños, [1]=Total habitaciones, [2]=Total locales.
+        if inp0.count() >= 1:
+            inp0.nth(0).fill(str(banos))
+        if inp0.count() >= 2:
+            inp0.nth(1).fill(str(habitaciones))
+        if inp0.count() >= 3:
+            inp0.nth(2).fill(str(locales))
+        print(f"  Total baños={banos} | habitaciones={habitaciones} | locales={locales}")
+    except Exception as e:
+        print(f"  [aviso] baños/habitaciones/locales: {type(e).__name__}")
+
     # Observaciones.
     try:
         tas = page.locator("textarea")
