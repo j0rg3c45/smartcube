@@ -582,10 +582,19 @@ cartografica):
   - Año de construccion (input min=1800, max=2026; puede venir en 0).
   - Calificacion catastral completa (16 desplegables: estructura/acabados/baño/cocina).
   - Total baños / habitaciones (valores coherentes de vivienda, no 0).
-  - **ALTURA de la(s) planta(s):** en la seccion "Plantas" del modal. Si la UC existente
-    NO tiene altura, el Paso 7 arroja `2_CLUC_CF_81`: "UC #N: planta con altura=None
-    (debe ser > 0)". Hay que asignar la altura (p. ej. 3 m por planta de vivienda).
   - Guardar con 'Actualizar UC'.
+- **REGLA IMPORTANTE (CORRECCION): en TODAS las Mutaciones 3a hay que SUBIR la GEOMETRIA
+  de la CONSTRUCCION** (el shapefile/.zip con las plantas, en el area "Cargar geometrias
+  de unidades de construccion"). La ALTURA de las plantas viene de ese shape; NO se
+  digita en el modal. Si NO se carga la geometria, el Paso 7 arroja `2_CLUC_CF_81`:
+  "UC #N: planta con altura=None (debe ser > 0)".
+  - Por tanto, la carga de la geometria de construccion es INTERVENCION DEL USUARIO
+    (cartografico) y el comando `tramite3a` debe DETENERSE en el Paso 4 esperando esa
+    carga. Luego el usuario retoma para completar la calificacion/avaluo/resumen.
+  - Flujo correcto 3a: Paso 1 (predio) -> Paso 2 (propietario) -> Paso 3 Terreno (sin
+    cambios, avanzar) -> Paso 4 Construccion: USUARIO carga el shape de la UC (plantas
+    con altura) -> agente edita la calificacion de la UC (boton edit) + Actualizar ->
+    Paso 5/6/7.
 
 ### Tipo de trámite: Cancelaciones - Fuerza Mayor (R-2026-0086)
 

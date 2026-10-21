@@ -79,12 +79,14 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
                           Ej: propietario R-2026-0081            (sustitucion 100%)
                           Ej: propietario R-2026-0082 copropiedad 2  (2 al 50%)
     tramite3a [semilla] [destino]
-                          Mutacion 3a de CORRIDO (Cambio Destino Economico): direccion
-                          (solo si NO es estructurada) + destino (solo si se indica);
-                          Terreno sin cambios graficos (avanza); Construccion: EDITA la
-                          calificacion de la UC existente (geometria coincidente) +
-                          Actualizar; Fuente Admin + Avaluo + Resumen validando. NO pasa
-                          a calidad. Ej: tramite3a R-2026-0084
+                          Mutacion 3a PARTE 1: Paso 1 (direccion solo si NO estructurada;
+                          destino solo si se indica) -> Terreno (avanza) -> se DETIENE en
+                          el Paso 4 (Construccion) para que el USUARIO suba la geometria
+                          de la construccion (shape con plantas/altura). Ej: tramite3a R-2026-0088
+    tramite3afin [semilla] [anio]
+                          Mutacion 3a PARTE 2 (tras cargar la geometria): edita la
+                          calificacion de la UC (boton edit) + Actualizar, luego Fuente
+                          Admin + Avaluo + Resumen validando. NO pasa a calidad.
     cancelacion [semilla] Tramite 'Cancelaciones - Fuerza Mayor' (3 pasos): llena el
                           Motivo de la cancelacion (causa de fuerza mayor variada) y la
                           Fuente Administrativa, avanza al Resumen y valida. NO pasa a
@@ -1080,19 +1082,46 @@ def tramite3a_completo(page, semilla: str = "", destino: str = "",
     else:
         print("  Destino Económico: se mantiene el actual (coherente con la direccion).")
 
-    # Recorrer el wizard de corrido.
-    for _ in range(18):
+    # Recorrer el wizard: Paso 1 -> 2 -> 3 (Terreno, avanzar) y DETENERSE en el Paso 4
+    # (Construccion), porque en Mutacion 3a el USUARIO debe SUBIR la geometria de la
+    # construccion (shape de plantas con altura). Sin eso, el Paso 7 da error de altura.
+    for _ in range(6):
         n = detectar_paso(page)
-        if n is None:
-            break
-        if n >= 7:
+        if n is None or n >= 4:
             break
         if n == 3:
             print("  Paso 3 Terreno: sin cambios graficos, se avanza.")
-        elif n == 4 and editar_uc:
-            print("  Paso 4 Construccion: editando calificacion de la UC existente...")
-            _editar_calificacion_uc(page, semilla)
-        elif n == 5:
+        continuar_wizard(page)
+        page.wait_for_timeout(1300)
+    n = detectar_paso(page)
+    if n == 4:
+        print("  >>> PASO 4 (Construccion) alcanzado.")
+        print("  >>> En Mutacion 3a el USUARIO debe SUBIR la GEOMETRIA de la construccion")
+        print("  >>> (shape .zip con las plantas; de ahi sale la ALTURA). Carga el shape y")
+        print("  >>> cuando este cargada la UC, usa 'tramite3afin <semilla>' para continuar")
+        print("  >>> (edita la calificacion de la UC + avaluo + resumen).")
+    else:
+        print(f"  Detenido en Paso {n}. Revisa con 'cap'.")
+
+
+def tramite3a_fin(page, semilla: str = "", anio_avaluo: str = "2025") -> None:
+    """Mutacion 3a - PARTE 2 (tras cargar la geometria de la construccion):
+    Paso 4: edita la calificacion de la UC existente (boton edit) + Actualizar. Luego
+    Fuente Admin + Avaluo + Resumen validando. NO pasa a calidad.
+    """
+    import re as _re
+    # Paso 4: editar calificacion de la UC existente.
+    n = detectar_paso(page)
+    if n == 4:
+        print("  Paso 4: editando calificacion de la UC (la geometria ya la cargo el usuario)...")
+        _editar_calificacion_uc(page, semilla)
+        page.wait_for_timeout(800)
+    # Avanzar hasta el Resumen.
+    for _ in range(16):
+        n = detectar_paso(page)
+        if n is None or n >= 7:
+            break
+        if n == 5:
             try:
                 fuente_administrativa(page, semilla)
             except Exception:
@@ -2201,12 +2230,19 @@ def repl(page, base_url: str) -> None:
                 # Uso: cancelacion [semilla]  -> Cancelaciones - Fuerza Mayor completo
                 tramite_cancelacion(page, arg.strip())
             elif cmd == "tramite3a":
-                # Uso: tramite3a [semilla] [destino]  -> Mutacion 3a de CORRIDO
-                # (Cambio Destino: terreno sin cambios, edita calificacion UC, hasta Resumen)
+                # Uso: tramite3a [semilla] [destino]  -> Mutacion 3a PARTE 1 (hasta Paso 4,
+                # donde el usuario sube la geometria de la construccion).
                 partes_3 = arg.split()
                 sem_3 = partes_3[0] if partes_3 else ""
                 dest_3 = " ".join(partes_3[1:]) if len(partes_3) > 1 else ""
                 tramite3a_completo(page, sem_3, dest_3)
+            elif cmd == "tramite3afin":
+                # Uso: tramite3afin [semilla] [anio]  -> Mutacion 3a PARTE 2 (tras cargar
+                # la geometria de la construccion): edita calificacion UC + avaluo + resumen.
+                partes_3f = arg.split()
+                sem_3f = partes_3f[0] if partes_3f else ""
+                anio_3f = partes_3f[1] if len(partes_3f) > 1 else "2025"
+                tramite3a_fin(page, sem_3f, anio_3f)
             elif cmd == "tramitepropietario":
                 # Uso: tramitepropietario [semilla] [modo] [n]  -> cambio de propietario
                 # + avanza hasta el Resumen y valida (NO pasa a calidad).
