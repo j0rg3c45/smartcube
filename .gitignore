@@ -20,6 +20,9 @@ reportes/
 
 # Datos sensibles / pesados
 03_tramites/
+# Entregables / plantillas de trabajo (datos locales, no versionados por ahora)
+06_Informe/
+plantillas/
 
 # Sistema
 .DS_Store

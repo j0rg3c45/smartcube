@@ -941,18 +941,30 @@ sigue guardada en el perfil).
    - `uv run python qa.py` (REPL de comandos).
 2. **R-2026-0057:** retomar solo si el usuario resolvió el bug de plataforma (poder
    cargar la geometría de la UC). Si se puede: re-validar en el Paso 7 y pasar a calidad.
-   Si no: queda bloqueado y se sigue con otro radicado.
-3. Procesar el siguiente radicado MENOR en Asignado (verificar en vivo con `listar`).
-   Listado Asignado al 20/10 (tras 0057): 0061, 0062, 0067, 0079, 0081, 0082, 0084,
-   0085, 0086, 0087, 0088, 0089.
+   Si no: queda bloqueado (error de origen IGAC) y se sigue con otro radicado.
+3. **Lote alfanumerico YA procesado (20/10 tarde) con `lote_qa.py`.** El usuario revisa
+   manualmente 0081, 0082 (detenidos en Paso 6 con avaluo calculado) y 0086 (no inicio
+   wizard) e informa. Para los que avanzaron al Paso 7 (0061, 0062, 0079, 0084, 0085,
+   0088) falta la CARGA DE GEOMETRIA (Terreno + Construcciones) por el usuario. Para
+   0067, 0087, 0089 falta la ASIGNACION DE NPN (cartografico).
 4. Usar los comandos de automatización del wizard (paso, puntosmasivo, linderosmasivo,
-   fuenteadmin, avaluo, caracterizacion). Datos sintéticos únicos por trámite.
+   fuenteadmin, avaluo, caracterizacion) o el lote (`lote_qa.py`). Datos sintéticos
+   únicos por trámite. SIEMPRE probar con 1 radicado antes del lote.
 5. PENDIENTE a pedido del usuario: crear `plantillas/plantilla_topografia/`.
 6. RECORDAR la meta de **50 radicados** e informe final de inconsistencias (van 22
-   hallazgos registrados).
+   hallazgos registrados). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
 
 Progreso meta: **2 de 50 completos a calidad** (R-2026-0077, R-2026-0075).
-R-2026-0072 en borrador; R-2026-0057 bloqueado por bug.
+R-2026-0072 en borrador; R-2026-0057 bloqueado por bug; lote 20/10 con el flujo
+alfanumerico adelantado en varios (pendiente geometria del usuario).
+
+#### Carpetas NO versionadas (fuera de git por `.gitignore`)
+
+Son datos/entregables locales, no van al repositorio:
+- `03_tramites/` — expedientes, evidencia, resumen_<RADICADO>.txt, fotos, GeoJSON.
+- `06_Informe/` — informe de QA en Word (`Informe_QA_SmartCube_Jamundi.docx`).
+- `plantillas/` — plantillas de carga masiva (xlsx) y `plantilla_topografia/`.
+- `05_codigo/.pw-profile/`, `05_codigo/capturas/`, `05_codigo/reportes/`, `.env`.
 
 ---
 
