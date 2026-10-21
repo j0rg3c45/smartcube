@@ -69,6 +69,11 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
                           estado Bueno, baños/habs, y la CALIFICACION CATASTRAL completa
                           - 16 desplegables). Requiere geometria ya cargada. Luego
                           revisar y pulsar 'Agregar UC'. Ej: construccion 2010 R-2026-0061
+    propietario [semilla] [participacion]
+                          Paso 2 (Cambio de Propietario): llena 'Datos del Nuevo
+                          Interesado' como Persona Natural con datos sinteticos UNICOS
+                          (nombre, documento), Dominio y % participacion (def. 100), y
+                          pulsa 'Agregar Propietario'. Ej: propietario R-2026-0081 100
     agregarfoto           pulsa '+ Agregar foto' (opcional)
     subirfoto <ruta>      carga un archivo de imagen
     continuar             pulsa 'Continuar' para avanzar de paso
@@ -740,6 +745,153 @@ def editar_direccion(page, semilla: str = "") -> None:
               f"# {vg_valor}{vg_letra} - {num_predio}, CP {cod_postal}")
     else:
         print("  No se encontro el boton 'Actualizar'. Revisa el modal.")
+
+
+# Datos de propietarios sinteticos ya usados (para NO repetir entre tramites).
+_propietarios_usados_doc: set = {"1130598742"}
+_propietarios_usados_nombre: set = set()
+
+_NOMBRES_M = ["Juan", "Carlos", "Andres", "Santiago", "Felipe", "Mauricio", "Diego",
+              "Ricardo", "Oscar", "Javier", "Hernan", "Alberto", "Sergio", "Fabian",
+              "Camilo", "Esteban", "Julian", "Mateo", "Ivan", "Hugo"]
+_NOMBRES_F = ["Maria", "Luisa", "Carolina", "Patricia", "Diana", "Angela", "Paola",
+              "Natalia", "Catalina", "Sandra", "Liliana", "Marcela", "Adriana", "Claudia",
+              "Daniela", "Valentina", "Lorena", "Monica", "Ximena", "Beatriz"]
+_APELLIDOS = ["Ramirez", "Gomez", "Lopez", "Martinez", "Rodriguez", "Gonzalez", "Perez",
+              "Torres", "Vargas", "Castro", "Ospina", "Valencia", "Zuluaga", "Cardenas",
+              "Montoya", "Giraldo", "Arango", "Quintero", "Restrepo", "Mejia", "Salazar",
+              "Rios", "Cuellar", "Bedoya", "Agudelo", "Marin", "Ocampo", "Serna"]
+
+
+def _nueva_persona_unica(rnd) -> dict:
+    """Genera una persona natural unica (nombre + documento no repetidos)."""
+    for _ in range(300):
+        es_m = rnd.random() < 0.5
+        n1 = rnd.choice(_NOMBRES_M if es_m else _NOMBRES_F)
+        n2 = rnd.choice(_NOMBRES_M if es_m else _NOMBRES_F)
+        a1 = rnd.choice(_APELLIDOS)
+        a2 = rnd.choice(_APELLIDOS)
+        nombre = f"{n1} {n2} {a1} {a2}"
+        doc = str(rnd.randint(10_000_000, 1_299_999_999))
+        if nombre.lower() in _propietarios_usados_nombre or doc in _propietarios_usados_doc:
+            continue
+        _propietarios_usados_nombre.add(nombre.lower())
+        _propietarios_usados_doc.add(doc)
+        return {"n1": n1, "n2": n2, "a1": a1, "a2": a2, "doc": doc,
+                "sexo": "Masculino" if es_m else "Femenino"}
+    doc = str(rnd.randint(10_000_000, 1_299_999_999))
+    return {"n1": "Prueba", "n2": "Qa", "a1": "Test", "a2": str(doc[-3:]),
+            "doc": doc, "sexo": "Masculino"}
+
+
+def nuevo_propietario(page, semilla: str = "", participacion: str = "100") -> None:
+    """Llena el formulario 'Datos del Nuevo Interesado' del Paso 2 (Cambio de
+    Propietario) como Persona Natural con datos sinteticos UNICOS, Dominio y el
+    porcentaje de participacion indicado, y pulsa 'Agregar Propietario'.
+
+    Mapa de <select> del formulario de nuevo interesado:
+      [0] Tipo Interesado        -> Persona Natural
+      [1] Tipo de Documento      -> Cédula de Ciudadanía
+      [2] Sexo                   -> segun el nombre generado
+      [3] Autorreconocimiento campesino -> NO se toca (no obligatorio, dato sensible)
+      [4] Tipo Derecho Catastral -> Dominio
+    Campos de texto: Nº Documento, Primer/Segundo Nombre, Primer/Segundo Apellido,
+    % Participacion.
+    """
+    import random
+    rnd = random.Random(semilla + "-prop") if semilla else random.Random()
+    p = _nueva_persona_unica(rnd)
+
+    def elegir(contiene_set, valor):
+        selects = page.locator("select")
+        for i in range(selects.count()):
+            try:
+                opts = [selects.nth(i).locator("option").nth(j).inner_text().strip()
+                        for j in range(selects.nth(i).locator("option").count())]
+            except Exception:
+                continue
+            joined = " ".join(opts).lower()
+            if all(c.lower() in joined for c in contiene_set):
+                for t in opts:
+                    if t.lower() == valor.lower() or t.lower().startswith(valor.lower()):
+                        try:
+                            selects.nth(i).select_option(label=t)
+                            return True
+                        except Exception:
+                            return False
+        return False
+
+    # 1) Tipo Interesado = Persona Natural (habilita el resto).
+    if elegir({"Persona Natural", "Persona Jurídica"}, "Persona Natural"):
+        print("  Tipo Interesado = Persona Natural")
+        page.wait_for_timeout(800)
+    else:
+        print("  No se encontro 'Tipo Interesado'. ¿Es el Paso 2 de Cambio de Propietario?")
+        return
+
+    # 2) Tipo de Documento = Cédula de Ciudadanía.
+    eligir_doc = elegir({"Cédula de Ciudadanía", "NIT"}, "Cédula de Ciudadanía")
+    if eligir_doc:
+        print("  Tipo de Documento = Cédula de Ciudadanía")
+
+    # 3) Numero de documento.
+    try:
+        caja_doc = page.locator("input[placeholder*='documento'], input[placeholder*='Documento']")
+        # Si no hay placeholder, usar el input junto al boton Buscar: lo ubicamos por orden.
+        if caja_doc.count() == 0:
+            caja_doc = page.get_by_label("Número Documento")
+        if caja_doc.count() > 0:
+            caja_doc.first.fill(p["doc"])
+            print(f"  Nº Documento = {p['doc']}")
+    except Exception:
+        pass
+
+    # 4) Nombres y apellidos por label.
+    def fill_label(label, valor):
+        try:
+            loc = page.get_by_label(label)
+            if loc.count() > 0:
+                loc.first.fill(valor)
+                return True
+        except Exception:
+            pass
+        return False
+    fill_label("Primer Nombre", p["n1"])
+    fill_label("Segundo Nombre", p["n2"])
+    fill_label("Primer Apellido", p["a1"])
+    fill_label("Segundo Apellido", p["a2"])
+    print(f"  Interesado = {p['n1']} {p['n2']} {p['a1']} {p['a2']} ({p['sexo']})")
+
+    # 5) Sexo.
+    elegir({"Masculino", "Femenino"}, p["sexo"])
+    # 6) Tipo Derecho Catastral = Dominio.
+    elegir({"Dominio", "Usufructo"}, "Dominio")
+    print("  Tipo Derecho = Dominio")
+    # Autorreconocimiento campesino [3]: NO se toca (no obligatorio, dato sensible).
+
+    # 7) % Participacion.
+    if not fill_label("% Participación", str(participacion)):
+        try:
+            caja_part = page.locator("input[placeholder*='%'], input[placeholder*='articipaci']")
+            if caja_part.count() > 0:
+                caja_part.first.fill(str(participacion))
+        except Exception:
+            pass
+    print(f"  % Participación = {participacion}")
+
+    page.wait_for_timeout(500)
+
+    # 8) Agregar Propietario.
+    boton = page.get_by_role("button", name="Agregar Propietario")
+    if boton.count() == 0:
+        boton = page.locator("button", has_text="Agregar Propietario")
+    if boton.count() > 0:
+        boton.first.click()
+        page.wait_for_timeout(1200)
+        page.wait_for_load_state("networkidle")
+        print("  'Agregar Propietario' pulsado. Revisa que el nuevo interesado aparezca en la lista.")
+    else:
+        print("  No se encontro el boton 'Agregar Propietario'. Revisa el formulario.")
 
 
 def llenar_construccion(page, anio: str = "", semilla: str = "") -> None:
@@ -1579,6 +1731,12 @@ def repl(page, base_url: str) -> None:
                 anio_c = partes_c[0] if partes_c else ""
                 sem_c = partes_c[1] if len(partes_c) > 1 else ""
                 llenar_construccion(page, anio_c, sem_c)
+            elif cmd == "propietario":
+                # Uso: propietario [semilla] [participacion]  (def. 100)
+                partes_p = arg.split()
+                sem_p = partes_p[0] if partes_p else ""
+                part_p = partes_p[1] if len(partes_p) > 1 else "100"
+                nuevo_propietario(page, sem_p, part_p)
             elif cmd == "direccion":
                 # Uso: direccion <vpValor> <vpLetra> <vgValor> <vgLetra> <numPredio>
                 partes_dir = arg.split()
