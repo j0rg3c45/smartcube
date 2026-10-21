@@ -1065,6 +1065,22 @@ Son datos/entregables locales, no van al repositorio:
 - `plantillas/` — plantillas de carga masiva (xlsx) y `plantilla_topografia/`.
 - `05_codigo/.pw-profile/`, `05_codigo/capturas/`, `05_codigo/reportes/`, `.env`.
 
+#### Informe Word (06_Informe) — estado y REGLA de edicion
+
+`06_Informe/Informe_QA_SmartCube_Jamundi.docx` es el informe de QA. Estructura: resumen
+ejecutivo, objetivo/alcance, metodologia, clasificacion de hallazgos, hallazgos
+destacados, tabla consolidada (hallazgos 1..23), recomendaciones, conclusiones, y
+"Anexo A. Nota de tramite R-2026-0061" (error de area grafica del terreno 328 vs 225.73
+m2, 45.3%).
+
+ESTADO (21/10/2026): el USUARIO agrego la IMAGEN SOPORTE del Anexo A (error de area de
+0061) y realizo AJUSTES MANUALES al documento (paso de 42 KB a 461 KB). 
+
+> REGLA: el informe Word tiene EDICIONES MANUALES del usuario. NO regenerarlo desde cero
+> con script (se perderian sus cambios y la imagen). Si hay que agregar algo por codigo,
+> hacerlo de forma INCREMENTAL (abrir el .docx existente y añadir), nunca sobrescribir.
+> Preferir que el usuario haga ajustes finos a mano.
+
 ---
 
 _Última actualización: 20/10/2026 (sesión R-2026-0057 bloqueado; comandos de
