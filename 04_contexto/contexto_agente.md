@@ -907,6 +907,19 @@ wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
   - PROBADO OK (21/10) en R-2026-0081 modo sustitucion: elimino a FRANCISCO JAVIER
     RINCON MEDELLIN y registro a LILIANA LUISA CARDENAS RIOS (CC 221558265, Femenino,
     Dominio, 100%). El fix de evento change resolvio el error de sexo None.
+- `tramitepropietario [semilla] [modo] [n]` — proceso COMPLETO de Cambio de Propietario
+  estando en el Paso 2: hace el cambio y AVANZA hasta el Resumen (paso 6) validando
+  (lee errores/warnings/OK). NO pasa a calidad (accion critica, la confirma el usuario).
+  - PROBADO OK (21/10) de punta a punta en R-2026-0082: CONSTRUCTORA BOLIVAR CALI SA
+    (NIT, 0%) -> ANGELA MARCELA ZULUAGA MARTINEZ (CC 566843056, Dominio 100%). Resumen:
+    0 ERRORES, 0 warnings, 51 OK. Quedo listo para 'Pasar borrador acto administrativo'
+    y 'Pasar a calidad'. Titular distinto al de 0081 (datos no repetidos OK).
+
+> ESTADO Cambios de Propietario (21/10): 0081 y 0082 con cambio de propietario hecho y
+> 0 errores en Resumen. Pendiente que el USUARIO pulse 'Pasar borrador acto
+> administrativo' + 'Pasar a calidad' (acciones criticas) para cerrarlos.
+> AJUSTE PENDIENTE: el comando `entrar` a veces no cambia de tramite si ya hay uno
+> abierto (hay que resetear el buscador); en 0082 si cambio bien.
   - REGLA de calificacion: **CONSERVADORA** (sencillo/regular, bajo-medio puntaje). NO
     calificar alto para no inflar el avaluo ni perjudicar al propietario. Coherente con
     la info de las plantas (vivienda estandar).
