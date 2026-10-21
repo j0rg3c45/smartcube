@@ -560,6 +560,22 @@ Durante la corrida: NO usar el navegador ni abrir DevTools.
 > quedar "sin valor en tabla de avaluo" segun la zona (ej. uso residencial urbano en
 > zona 00 rural). Validar si es limitacion de la tabla de avaluo o eleccion de uso.
 
+### Tipo de trámite: Mutación 3a Clase - Cambio Destino Económico (R-2026-0084)
+
+Flujo de 8 pasos. En Cambio de Destino el proceso es de CORRIDO (NO hay pausa
+cartografica):
+- Paso 1 Predio: direccion se deja si ya es estructurada (apartamento en PH); el Destino
+  se mantiene coherente con la direccion (apartamento -> Habitacional, NO cambiar).
+- Paso 3 Terreno: NO sufre cambios graficos; solo avanzar.
+- Paso 4 Construccion: la geometria de la UC YA coincide (no cargar capas). La
+  calificacion llega INCOMPLETA: hay que ENTRAR a EDITAR la UC y complementar todos los
+  campos alfanumericos de calificacion (estructura/acabados/conservacion) con valores
+  coherentes NO repetidos, y pulsar 'Actualizar'/'Guardar'.
+- Pasos 5-7: Fuente Admin + Avaluo + Resumen.
+- Comando: `tramite3a [semilla] [destino]` (de corrido; edita calificacion UC; NO pasa
+  a calidad). El resumen.txt debe indicar: terreno intacto + calificacion de UC
+  actualizada.
+
 ### Tipo de trámite: Cancelaciones - Fuerza Mayor (R-2026-0086)
 
 Tipo "Mutación Integral / Cancelaciones - Fuerza Mayor" (R-2026-0086, Tramite #92,

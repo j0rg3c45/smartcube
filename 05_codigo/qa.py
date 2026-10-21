@@ -78,14 +78,13 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
                             repartiendo 100% en partes iguales.
                           Ej: propietario R-2026-0081            (sustitucion 100%)
                           Ej: propietario R-2026-0082 copropiedad 2  (2 al 50%)
-    tramite3ainicio [semilla] [destino]
-                          Mutacion 3a PARTE 1: Paso 1 (direccion si NO es estructurada;
-                          destino solo si se indica) y avanza hasta DETENERSE en el Paso 3
-                          (Terreno = reserva cartografica del usuario).
-    tramite3afin [semilla] [anio]
-                          Mutacion 3a PARTE 2 (tras cargar la geometria): Construccion +
-                          Fuente Admin + Avaluo (def 2025) + Resumen validando. NO pasa a
-                          calidad. Ej: tramite3afin R-2026-0084 2025
+    tramite3a [semilla] [destino]
+                          Mutacion 3a de CORRIDO (Cambio Destino Economico): direccion
+                          (solo si NO es estructurada) + destino (solo si se indica);
+                          Terreno sin cambios graficos (avanza); Construccion: EDITA la
+                          calificacion de la UC existente (geometria coincidente) +
+                          Actualizar; Fuente Admin + Avaluo + Resumen validando. NO pasa
+                          a calidad. Ej: tramite3a R-2026-0084
     cancelacion [semilla] Tramite 'Cancelaciones - Fuerza Mayor' (3 pasos): llena el
                           Motivo de la cancelacion (causa de fuerza mayor variada) y la
                           Fuente Administrativa, avanza al Resumen y valida. NO pasa a
@@ -989,71 +988,94 @@ def _direccion_es_estructurada(page) -> bool:
         return False
 
 
-def tramite3a_inicio(page, semilla: str = "", destino: str = "") -> None:
-    """Mutacion 3a (Cambio Area Construida / Cambio Destino Economico) - PARTE 1.
+def _editar_calificacion_uc(page, semilla: str = "") -> bool:
+    """En el Paso 4 (Construccion), abre la EDICION de la UC existente (icono/boton
+    'edit') y complementa su calificacion catastral con 'llenar_construccion', luego
+    pulsa 'Actualizar'/'Guardar'. Para Cambio de Destino la geometria YA coincide, solo
+    se completa lo alfanumerico. Devuelve True si edito algo."""
+    # Abrir el editor de la UC existente.
+    abierto = False
+    try:
+        lapiz = page.get_by_text("edit", exact=True)
+        if lapiz.count() > 0:
+            lapiz.first.click()
+            page.wait_for_timeout(900)
+            abierto = True
+    except Exception:
+        pass
+    if not abierto:
+        # Respaldo: boton con texto Editar.
+        try:
+            b = page.get_by_role("button", name="Editar")
+            if b.count() > 0:
+                b.first.click()
+                page.wait_for_timeout(900)
+                abierto = True
+        except Exception:
+            pass
+    if not abierto:
+        print("  [aviso] no se encontro el boton de editar la UC. Revisa con 'cap'.")
+        return False
+    # Completar la calificacion (reutiliza la logica de llenar_construccion: tipo/uso/
+    # estado/calificacion conservadora). NO toca geometria.
+    try:
+        llenar_construccion(page, "", semilla)
+    except Exception as e:
+        print(f"  [aviso] al completar calificacion: {type(e).__name__}")
+    # Guardar/Actualizar la UC.
+    for txt in ("Actualizar", "Guardar", "Actualizar UC", "Guardar UC"):
+        b = page.get_by_role("button", name=txt)
+        if b.count() == 0:
+            b = page.locator("button", has_text=txt)
+        if b.count() > 0:
+            b.first.click()
+            page.wait_for_timeout(1200)
+            page.wait_for_load_state("networkidle")
+            print(f"  Calificacion de la UC guardada ('{txt}').")
+            return True
+    print("  [aviso] no se encontro boton Actualizar/Guardar de la UC.")
+    return False
 
-    Paso 1 (Predio): si la direccion NO es estructurada, la estructura (editardireccion);
-    si ya es estructurada, NO la toca. Ajusta el Destino Economico SOLO si se pasa un
-    valor explicito o si el predio es un lote que va a tener construccion. Por coherencia
-    con la direccion (apartamento/casa) se mantiene Habitacional.
-    Luego avanza: Paso 2 (propietario, no toca) y se DETIENE en el Paso 3 (Terreno),
-    que es reserva cartografica del usuario.
+
+def tramite3a_completo(page, semilla: str = "", destino: str = "",
+                       anio_avaluo: str = "2025", editar_uc: bool = True) -> None:
+    """Mutacion 3a (Cambio Destino Economico / Cambio Area Construida) de CORRIDO.
+
+    Para Cambio de Destino: el terreno NO cambia (solo avanzar) y la construccion YA
+    tiene geometria coincidente; se EDITA la calificacion de la UC (alfanumerico) y se
+    actualiza. Luego avanza Fuente Admin + Avaluo + Resumen validando. NO pasa a calidad.
+
+    - Paso 1: direccion (solo si NO es estructurada) + destino (solo si se indica).
+    - Paso 2: propietario (no toca).
+    - Paso 3 Terreno: NO se pausa; se avanza (sin cambios graficos).
+    - Paso 4 Construccion: si editar_uc, edita la calificacion de la UC existente.
+    - Paso 5/6: Fuente Admin + Avaluo. Paso 7: Resumen validando.
     """
-    # Paso 1: direccion.
+    import re as _re
+    # Paso 1.
     if _direccion_es_estructurada(page):
         print("  Direccion YA estructurada: no se toca.")
     else:
-        print("  Direccion NO estructurada: se estructura con datos sinteticos.")
+        print("  Direccion NO estructurada: se estructura.")
         editar_direccion(page, semilla)
         page.wait_for_timeout(800)
-
-    # Destino Economico: solo si se indico explicitamente. Si no, se deja como esta
-    # (coherente con la direccion; p. ej. apartamento -> Habitacional).
     if destino:
         cambiar_destino(page, destino)
     else:
         print("  Destino Económico: se mantiene el actual (coherente con la direccion).")
 
-    # Avanzar Paso 1 -> Paso 2 -> detenerse en Paso 3 (Terreno).
-    for _ in range(4):
-        n = detectar_paso(page)
-        if n is None or n >= 3:
-            break
-        continuar_wizard(page)
-        page.wait_for_timeout(1200)
-    n = detectar_paso(page)
-    if n == 3:
-        print("  >>> PASO CARTOGRAFICO alcanzado (Paso 3 - Terreno).")
-        print("  >>> Queda en espera de tu intervencion manual sobre terreno/construcciones.")
-        print("  >>> Cuando termines, usa 'tramite3afin <semilla>' para continuar.")
-    else:
-        print(f"  Detenido en Paso {n}. Revisa con 'cap'.")
-
-
-def tramite3a_fin(page, semilla: str = "", anio_avaluo: str = "2025") -> None:
-    """Mutacion 3a - PARTE 2 (despues de que el usuario cargo la geometria):
-
-    Paso 4 (Construccion): si hay modal/UC por llenar, usa 'construccion'. Luego avanza
-    Paso 5 (Fuente Administrativa), Paso 6 (Avaluo retroactivo), hasta el Paso 7 (Resumen)
-    validando. NO pasa a calidad (lo confirma el usuario).
-    """
-    import re as _re
-    for _ in range(16):
+    # Recorrer el wizard de corrido.
+    for _ in range(18):
         n = detectar_paso(page)
         if n is None:
             break
         if n >= 7:
             break
-        if n == 4:
-            # Si hay modal de 'Nueva unidad de construccion' abierto, llenarlo.
-            try:
-                cuerpo = page.locator("body").inner_text()
-                if "Nueva unidad de construccion" in cuerpo or "Unidades de Construcción" in cuerpo:
-                    # Solo intenta llenar si hay desplegables de UC visibles.
-                    if page.locator("select").count() >= 3:
-                        llenar_construccion(page, "", semilla)
-            except Exception:
-                pass
+        if n == 3:
+            print("  Paso 3 Terreno: sin cambios graficos, se avanza.")
+        elif n == 4 and editar_uc:
+            print("  Paso 4 Construccion: editando calificacion de la UC existente...")
+            _editar_calificacion_uc(page, semilla)
         elif n == 5:
             try:
                 fuente_administrativa(page, semilla)
@@ -2136,18 +2158,13 @@ def repl(page, base_url: str) -> None:
             elif cmd == "cancelacion":
                 # Uso: cancelacion [semilla]  -> Cancelaciones - Fuerza Mayor completo
                 tramite_cancelacion(page, arg.strip())
-            elif cmd == "tramite3ainicio":
-                # Uso: tramite3ainicio [semilla] [destino]  -> Mutacion 3a parte 1 (hasta Terreno)
-                partes_3i = arg.split()
-                sem_3i = partes_3i[0] if partes_3i else ""
-                dest_3i = " ".join(partes_3i[1:]) if len(partes_3i) > 1 else ""
-                tramite3a_inicio(page, sem_3i, dest_3i)
-            elif cmd == "tramite3afin":
-                # Uso: tramite3afin [semilla] [anio]  -> Mutacion 3a parte 2 (tras cargar geometria)
-                partes_3f = arg.split()
-                sem_3f = partes_3f[0] if partes_3f else ""
-                anio_3f = partes_3f[1] if len(partes_3f) > 1 else "2025"
-                tramite3a_fin(page, sem_3f, anio_3f)
+            elif cmd == "tramite3a":
+                # Uso: tramite3a [semilla] [destino]  -> Mutacion 3a de CORRIDO
+                # (Cambio Destino: terreno sin cambios, edita calificacion UC, hasta Resumen)
+                partes_3 = arg.split()
+                sem_3 = partes_3[0] if partes_3 else ""
+                dest_3 = " ".join(partes_3[1:]) if len(partes_3) > 1 else ""
+                tramite3a_completo(page, sem_3, dest_3)
             elif cmd == "tramitepropietario":
                 # Uso: tramitepropietario [semilla] [modo] [n]  -> cambio de propietario
                 # + avanza hasta el Resumen y valida (NO pasa a calidad).
