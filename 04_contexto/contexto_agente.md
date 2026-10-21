@@ -542,8 +542,11 @@ Durante la corrida: NO usar el navegador ni abrir DevTools.
        agro False, uso 2, puntaje 28)". El uso elegido (Apartamentos 4+ = uso 2) en zona
        00 (rural) no tiene valor en la tabla de avaluo. A revisar: cambiar el uso de la
        UC por uno con valor en tabla para esa zona; si ningun uso tiene valor -> HALLAZGO.
-  - Tras ajustar, pulsar RE-VALIDAR. QUEDAMOS AQUI (21/10/2026): sesion pausada en el
-    Paso 7 de 0061 con esos 2 errores por resolver.
+  - Tras ajustar, pulsar RE-VALIDAR.
+  - **ESTADO FINAL (21/10/2026): R-2026-0061 QUEDO LISTO.** El usuario resolvio los 2
+    errores del Paso 7 (area grafica del terreno y UC sin valor en tabla). El error de
+    area grafica quedo documentado como hallazgo #23 en el informe (con imagen soporte).
+    Trabajo alfanumerico del tramite completado.
 
 > OBSERVACION para el informe (posible hallazgo): la calificacion/uso de la UC puede
 > quedar "sin valor en tabla de avaluo" segun la zona (ej. uso residencial urbano en
