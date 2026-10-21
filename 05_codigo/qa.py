@@ -27,6 +27,8 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
     radicados             lista radicados visibles ordenados
     detalle <R-...>       abre 'Ver detalle' del radicado
     abrir <R-...>         AUTO: Asignacion -> filtrar Asignado -> abrir detalle
+    entrar <R-...>        AUTO COMPLETO: busca, abre detalle y pulsa 'Iniciar
+                          Tramite' -> entra directo al wizard (para revisar)
     siguiente             AUTO: abre el radicado MENOR en estado Asignado
     iniciar               pulsa 'Iniciar Tramite' (ACCION CRITICA)
     listar                recorre TODAS las paginas y lista los Asignado ordenados
@@ -972,6 +974,43 @@ def abrir_radicado(page, base_url: str, radicado: str) -> bool:
     return abrir_detalle(page, radicado)
 
 
+def entrar_radicado(page, base_url: str, radicado: str) -> bool:
+    """Secuencia COMPLETA para entrar directo al wizard de un radicado:
+    Asignacion -> filtrar Asignado -> buscar por el buscador -> abrir detalle ->
+    pulsar 'Iniciar Tramite'. Deja la pagina en el wizard (/gestion-tramites).
+
+    Util para revisar cada radicado sin encadenar comandos a mano.
+    """
+    print(f"  [1/4] Navegando a Asignacion y filtrando Asignado...")
+    ir_asignacion(page, base_url)
+    filtrar_estado(page, "Asignado")
+    print(f"  [2/4] Buscando {radicado} por el buscador...")
+    buscador = page.locator("input[placeholder*='Buscar por radicado']")
+    if buscador.count() > 0:
+        buscador.first.fill("")
+        buscador.first.type(radicado, delay=15)
+        page.wait_for_timeout(1500)
+        page.wait_for_load_state("networkidle")
+    print(f"  [3/4] Abriendo detalle de {radicado}...")
+    if not abrir_detalle(page, radicado):
+        print(f"  No se pudo abrir el detalle de {radicado}.")
+        return False
+    page.wait_for_timeout(800)
+    print(f"  [4/4] Pulsando 'Iniciar Tramite'...")
+    boton = page.get_by_role("button", name="Iniciar Trámite")
+    if boton.count() == 0:
+        boton = page.get_by_text("Iniciar Trámite", exact=False)
+    if boton.count() == 0:
+        print("  No hay boton 'Iniciar Tramite' (quiza requiere Asignacion de NPN, o ya iniciado).")
+        return False
+    boton.first.click()
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(1500)
+    print("  Dentro del wizard. Usa 'paso' para ver en que paso estas.")
+    mostrar_estado(page)
+    return True
+
+
 def siguiente_radicado(page, base_url: str) -> str | None:
     """Abre automaticamente el radicado MENOR en estado Asignado.
 
@@ -1100,6 +1139,11 @@ def repl(page, base_url: str) -> None:
                     print("  Uso: abrir <numero de radicado>")
                 else:
                     abrir_radicado(page, base_url, arg)
+            elif cmd == "entrar":
+                if not arg:
+                    print("  Uso: entrar <numero de radicado>")
+                else:
+                    entrar_radicado(page, base_url, arg)
             elif cmd == "siguiente":
                 siguiente_radicado(page, base_url)
             elif cmd == "iniciar":
