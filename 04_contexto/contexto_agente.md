@@ -1044,11 +1044,17 @@ uv run python qa.py
 2. **R-2026-0057:** retomar solo si el usuario resolvió el bug de plataforma (poder
    cargar la geometría de la UC). Si se puede: re-validar en el Paso 7 y pasar a calidad.
    Si no: queda bloqueado (error de origen IGAC) y se sigue con otro radicado.
-3. **Lote alfanumerico YA procesado (20/10 tarde) con `lote_qa.py`.** El usuario revisa
-   manualmente 0081, 0082 (detenidos en Paso 6 con avaluo calculado) y 0086 (no inicio
-   wizard) e informa. Para los que avanzaron al Paso 7 (0061, 0062, 0079, 0084, 0085,
-   0088) falta la CARGA DE GEOMETRIA (Terreno + Construcciones) por el usuario. Para
-   0067, 0087, 0089 falta la ASIGNACION DE NPN (cartografico).
+3. **Revision guiada por radicado (21/10) con el comando `entrar <radicado>`:**
+   - **R-2026-0061 — LISTO** (Mutacion 3a Cambio Area Construida): direccion estructurada,
+     destino Habitacional, UC con calificacion conservadora, fuente admin, avaluo 2025;
+     usuario resolvio los 2 errores del Paso 7. Hallazgo #23 (area grafica) en el informe.
+   - **SIGUIENTE a revisar: R-2026-0062** (Mutacion 4a - Revision Avaluo). Entrar con
+     `entrar R-2026-0062`, luego `paso` + `cap`. Preguntar si lleva construccion.
+   - Resto del lote por revisar/completar: 0079, 0084, 0085, 0088 (avanzaron al Paso 7,
+     falta geometria). 0081, 0082 (revisar, detenidos en Paso 6). 0086 (no inicio wizard).
+     0067, 0087, 0089 (requieren Asignacion de NPN - cartografico).
+   - Comandos de edicion disponibles: `entrar`, `editardireccion`, `destino`,
+     `construccion`, `fuenteadmin`, `avaluo`, `puntosmasivo`, `linderosmasivo`, `paso`.
 4. Usar los comandos de automatización del wizard (paso, puntosmasivo, linderosmasivo,
    fuenteadmin, avaluo, caracterizacion) o el lote (`lote_qa.py`). Datos sintéticos
    únicos por trámite. SIEMPRE probar con 1 radicado antes del lote.
