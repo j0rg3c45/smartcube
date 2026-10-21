@@ -580,12 +580,12 @@ cartografica):
   geometria de la construccion (altura), el agente edito la calificacion de la UC (año
   2010, baños/habitaciones, calificacion conservadora) + avaluo 2025. Resumen: 0 ERRORES,
   60 OK. Resumen en 03_tramites/12_tramite_R-2026-0084/resumen_R-2026-0084.txt.
-- **R-2026-0088 (21/10/2026):** Mutacion 3a Cambio Area Construida, predio #23428,
-  propietario JAMUNDI URBANIZADORA. El comando `tramite3a` proceso TODO lo alfanumerico
-  de corrido (predio, propietario, terreno/construccion avanzados, fuente admin, avaluo)
-  y llego al Resumen con 1 ERROR, 60 OK. El error es `3_ET_CF_108` EXACTITUD TEMATICA:
-  area digitada 1921 m2 vs poligono 2167.96 m2 (11.4%, >10%). ES AJUSTE CARTOGRAFICO DEL
-  USUARIO (corregir area/geometria del terreno) + re-validar. Pendiente ajuste del usuario.
+- **R-2026-0088 QUEDO LISTO (21/10/2026):** Mutacion 3a Cambio Area Construida, predio
+  #23428, propietario JAMUNDI URBANIZADORA. `tramite3a` proceso lo alfanumerico de
+  corrido; el USUARIO ajusto el area del terreno (error 3_ET_CF_108) y cargo la geometria
+  de la construccion; el agente completo la UC con `construccion` (Uso Vivienda hasta 3
+  pisos, año 2012, baños/habitaciones, calificacion conservadora). Quedo todo correcto.
+  Resumen en 03_tramites/16_tramite_R-2026-0088/resumen_R-2026-0088.txt.
 - **REGLA (editar UC):** la informacion de la Unidad de Construccion SOLO se edita con
   el boton del icono `<span class="material-symbols-outlined text-lg">edit</span>` en la
   fila de la UC. Ese boton abre el modal "Editar UC A".
@@ -1171,27 +1171,33 @@ uv run python qa.py
 2. **R-2026-0057:** retomar solo si el usuario resolvió el bug de plataforma (poder
    cargar la geometría de la UC). Si se puede: re-validar en el Paso 7 y pasar a calidad.
    Si no: queda bloqueado (error de origen IGAC) y se sigue con otro radicado.
-3. **Revision guiada por radicado (21/10) con el comando `entrar <radicado>`:**
-   - **R-2026-0061 — LISTO** (Mutacion 3a Cambio Area Construida): direccion estructurada,
-     destino Habitacional, UC con calificacion conservadora, fuente admin, avaluo 2025;
-     usuario resolvio los 2 errores del Paso 7. Hallazgo #23 (area grafica) en el informe.
-   - **SIGUIENTE a revisar: R-2026-0062** (Mutacion 4a - Revision Avaluo). Entrar con
-     `entrar R-2026-0062`, luego `paso` + `cap`. Preguntar si lleva construccion.
-   - Resto del lote por revisar/completar: 0079, 0084, 0085, 0088 (avanzaron al Paso 7,
-     falta geometria). 0081, 0082 (revisar, detenidos en Paso 6). 0086 (no inicio wizard).
-     0067, 0087, 0089 (requieren Asignacion de NPN - cartografico).
-   - Comandos de edicion disponibles: `entrar`, `editardireccion`, `destino`,
-     `construccion`, `fuenteadmin`, `avaluo`, `puntosmasivo`, `linderosmasivo`, `paso`.
-4. Usar los comandos de automatización del wizard (paso, puntosmasivo, linderosmasivo,
-   fuenteadmin, avaluo, caracterizacion) o el lote (`lote_qa.py`). Datos sintéticos
-   únicos por trámite. SIEMPRE probar con 1 radicado antes del lote.
+3. **ESTADO consolidado de los radicados (21/10/2026):**
+   - **LISTOS/cerrados:** R-2026-0077, R-2026-0075 (sesiones previas a calidad),
+     R-2026-0061, R-2026-0081, R-2026-0082, R-2026-0084, R-2026-0088. R-2026-0086
+     (Cancelacion Fuerza Mayor) validado 0 errores, listo para calidad.
+   - **BLOQUEADO:** R-2026-0057 (Efectos Registrales, bug de origen IGAC). R-2026-0072
+     en borrador (sesion previa).
+   - **PENDIENTES por procesar:** R-2026-0062 (Mut 4a Revision Avaluo), R-2026-0079
+     (Mixta Rectif->Cambio Prop), R-2026-0085 (Rectificaciones). Requieren Asignacion de
+     NPN (cartografico): R-2026-0067 (Mut 2a Division), R-2026-0087 (Rectif Cambio NPN),
+     R-2026-0089 (Mut 2a Segregacion).
+4. **Comandos de automatizacion por tipo (todos en qa.py, probados):**
+   - `entrar <rad>` entra directo al wizard.
+   - Cambio de Propietario: `tramitepropietario <rad>` (completo) o `propietario <rad>
+     [modo] [n]` (sustitucion/copropiedad).
+   - Cancelaciones-Fuerza Mayor: `cancelacion <rad>`.
+   - Mutacion 3a: `tramite3a <rad>` (alfanumerico de corrido hasta Resumen; el usuario
+     ajusta area del terreno + carga geometria de construccion) + `construccion <anio>
+     <rad>` para completar la UC (Uso OBLIGATORIO, año, baños/habitaciones, calificacion
+     conservadora).
+   - Por paso: `editardireccion`, `destino`, `caracterizacion`, `fuenteadmin`, `avaluo`,
+     `puntosmasivo`, `linderosmasivo`, `paso`, `cap`.
+   - Datos sinteticos UNICOS por tramite (nombres/documentos/direcciones no repetidos).
+     Calificacion de construccion CONSERVADORA. NUNCA pasar a calidad automatico (lo
+     confirma el usuario).
 5. PENDIENTE a pedido del usuario: crear `plantillas/plantilla_topografia/`.
-6. RECORDAR la meta de **50 radicados** e informe final de inconsistencias (van 22
-   hallazgos registrados). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
-
-Progreso meta: **2 de 50 completos a calidad** (R-2026-0077, R-2026-0075).
-R-2026-0072 en borrador; R-2026-0057 bloqueado por bug; lote 20/10 con el flujo
-alfanumerico adelantado en varios (pendiente geometria del usuario).
+6. RECORDAR la meta de **50 radicados** e informe final de inconsistencias (van 23
+   hallazgos). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
 
 #### Carpetas NO versionadas (fuera de git por `.gitignore`)
 
