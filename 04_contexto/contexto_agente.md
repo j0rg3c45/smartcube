@@ -785,6 +785,10 @@ tipo 0086. No son criticos: el lote dejo todo lo alfanumerico lleno.
 
 Se agregaron comandos de alto nivel para automatizar los pasos alfanuméricos del
 wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
+- `entrar <R-...>` — AUTO COMPLETO: navega a Asignacion, filtra, busca el radicado por
+  el buscador, abre el detalle y pulsa 'Iniciar Tramite', dejando la pagina dentro del
+  wizard (/gestion-tramites). Util para ENTRAR DIRECTO a revisar cada radicado sin
+  encadenar comandos. Ej: `entrar R-2026-0061`.
 - `paso` — diagnostica el paso actual del wizard y dice si es automatizable (agente)
   o manual (usuario/cartografico), con la frase de pausa cuando corresponde.
 - `puntosmasivo <TipoPunto>|<Metodo>|<PuntoControl>` — Paso 3 pestaña Puntos: llena
