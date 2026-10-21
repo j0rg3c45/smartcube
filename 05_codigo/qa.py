@@ -1028,16 +1028,26 @@ def tramite_propietario_completo(page, semilla: str = "", modo: str = "sustituci
         pass
     try:
         cuerpo = page.locator("body").inner_text()
-        m_err = _re.search(r"(\d+)\s*\n?\s*ERRORES", cuerpo)
-        m_warn = _re.search(r"(\d+)\s*\n?\s*WARNINGS", cuerpo)
-        m_ok = _re.search(r"(\d+)\s*\n?\s*OK", cuerpo)
-        errores = m_err.group(1) if m_err else "?"
-        print(f"  VALIDACIONES -> errores: {errores} | "
-              f"warnings: {m_warn.group(1) if m_warn else '?'} | ok: {m_ok.group(1) if m_ok else '?'}")
+        # El conteo viene como bloques: el numero y en la linea siguiente la etiqueta
+        # (ERRORES / WARNINGS / OK / OMITIDAS). Capturamos 'N<sep>ETIQUETA'.
+        def _conteo(etiqueta):
+            m = _re.search(r"(\d+)\s*[\r\n]+\s*" + etiqueta, cuerpo, _re.IGNORECASE)
+            if not m:
+                m = _re.search(etiqueta + r"\s*[\r\n]+\s*(\d+)", cuerpo, _re.IGNORECASE)
+            return m.group(1) if m else None
+        errores = _conteo("ERRORES")
+        warnings = _conteo("WARNINGS")
+        ok = _conteo("OK")
+        print(f"  VALIDACIONES -> errores: {errores or '?'} | "
+              f"warnings: {warnings or '?'} | ok: {ok or '?'}")
         if errores == "0":
-            print("  >>> 0 errores. Puedes pulsar 'Pasar a calidad' (accion CRITICA, hazlo tu).")
+            print("  >>> 0 ERRORES. El tramite esta listo. Para cerrarlo: 'Pasar borrador")
+            print("  >>> acto administrativo' y luego 'Pasar a calidad' (ACCIONES CRITICAS,")
+            print("  >>> las confirma y pulsa el USUARIO).")
+        elif errores is None:
+            print("  >>> No se pudo leer el conteo con certeza. Revisa con 'cap'.")
         else:
-            print("  >>> HAY ERRORES: corrige antes de pasar a calidad. NO se paso a calidad.")
+            print(f"  >>> HAY {errores} ERROR(ES): corrige antes de pasar a calidad.")
     except Exception:
         print("  No se pudo leer el conteo de validaciones; revisa con 'cap'.")
     print("  (El comando NO pasa a calidad automaticamente. Revisa y confirma tu.)")
