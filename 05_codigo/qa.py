@@ -69,12 +69,15 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
                           estado Bueno, baños/habs, y la CALIFICACION CATASTRAL completa
                           - 16 desplegables). Requiere geometria ya cargada. Luego
                           revisar y pulsar 'Agregar UC'. Ej: construccion 2010 R-2026-0061
-    propietario [semilla] [participacion]
-                          Paso 2 (Cambio de Propietario): llena 'Datos del Nuevo
-                          Interesado' como Persona Natural con datos sinteticos UNICOS
-                          (nombre, documento), Sexo, Autorreconocimiento ETNICO=Ninguno
-                          (OBLIGATORIO), Dominio y % participacion (def. 100), y pulsa
-                          'Agregar Propietario'. Ej: propietario R-2026-0081 100
+    propietario [semilla] [modo] [n]
+                          Paso 2 (Cambio de Propietario). Datos sinteticos UNICOS,
+                          Persona Natural, etnico=Ninguno (OBLIGATORIO), Dominio.
+                          modo=sustitucion (def): ELIMINA titular(es) previo(s) y
+                            registra 1 nuevo al 100%.
+                          modo=copropiedad: NO elimina; agrega n copropietarios
+                            repartiendo 100% en partes iguales.
+                          Ej: propietario R-2026-0081            (sustitucion 100%)
+                          Ej: propietario R-2026-0082 copropiedad 2  (2 al 50%)
     agregarfoto           pulsa '+ Agregar foto' (opcional)
     subirfoto <ruta>      carga un archivo de imagen
     continuar             pulsa 'Continuar' para avanzar de paso
@@ -785,123 +788,134 @@ def _nueva_persona_unica(rnd) -> dict:
             "doc": doc, "sexo": "Masculino"}
 
 
-def nuevo_propietario(page, semilla: str = "", participacion: str = "100") -> None:
-    """Llena el formulario 'Datos del Nuevo Interesado' del Paso 2 (Cambio de
-    Propietario) como Persona Natural con datos sinteticos UNICOS, Dominio y el
-    porcentaje de participacion indicado, y pulsa 'Agregar Propietario'.
-
-    Mapa de <select> del formulario de nuevo interesado:
-      [0] Tipo Interesado        -> Persona Natural
-      [1] Tipo de Documento      -> Cédula de Ciudadanía
-      [2] Sexo                   -> segun el nombre generado
-      [3] Autorreconocimiento campesino -> NO se toca (no obligatorio, dato sensible)
-      [4] Tipo Derecho Catastral -> Dominio
-    Campos de texto: Nº Documento, Primer/Segundo Nombre, Primer/Segundo Apellido,
-    % Participacion.
-    """
-    import random
-    rnd = random.Random(semilla + "-prop") if semilla else random.Random()
-    p = _nueva_persona_unica(rnd)
-
-    def elegir(contiene_set, valor):
-        selects = page.locator("select")
-        for i in range(selects.count()):
-            try:
-                opts = [selects.nth(i).locator("option").nth(j).inner_text().strip()
-                        for j in range(selects.nth(i).locator("option").count())]
-            except Exception:
-                continue
-            joined = " ".join(opts).lower()
-            if all(c.lower() in joined for c in contiene_set):
-                for t in opts:
-                    if t.lower() == valor.lower() or t.lower().startswith(valor.lower()):
-                        try:
-                            selects.nth(i).select_option(label=t)
-                            return True
-                        except Exception:
-                            return False
+def _select_spa(page, idx: int, etiqueta_opcion: str) -> bool:
+    """Selecciona una opcion en el <select> idx DISPARANDO el evento change que la SPA
+    (React/Vue) necesita. Resuelve que el valor quede en 'None' aunque se vea bien."""
+    selects = page.locator("select")
+    if idx >= selects.count():
         return False
+    try:
+        selects.nth(idx).select_option(label=etiqueta_opcion)
+    except Exception:
+        return False
+    try:
+        selects.nth(idx).evaluate(
+            "el => { el.dispatchEvent(new Event('input',{bubbles:true}));"
+            " el.dispatchEvent(new Event('change',{bubbles:true})); }")
+    except Exception:
+        pass
+    page.wait_for_timeout(250)
+    return True
 
-    # 1) Tipo Interesado = Persona Natural (habilita el resto).
-    if elegir({"Persona Natural", "Persona Jurídica"}, "Persona Natural"):
-        print("  Tipo Interesado = Persona Natural")
-        page.wait_for_timeout(800)
-    else:
+
+def _idx_select_con(page, *palabras) -> int:
+    """Indice del <select> cuyas opciones contengan TODAS las palabras."""
+    selects = page.locator("select")
+    for i in range(selects.count()):
+        try:
+            opts = [selects.nth(i).locator("option").nth(j).inner_text().strip()
+                    for j in range(selects.nth(i).locator("option").count())]
+        except Exception:
+            continue
+        joined = " ".join(opts).lower()
+        if all(w.lower() in joined for w in palabras):
+            return i
+    return -1
+
+
+def _eliminar_propietarios_existentes(page) -> int:
+    """Elimina TODOS los propietarios de la tabla (icono papelera 'delete').
+    Devuelve cuantos elimino. Maneja posible modal de confirmacion."""
+    eliminados = 0
+    for _ in range(10):
+        papeleras = page.get_by_text("delete", exact=True)
+        if papeleras.count() == 0:
+            break
+        try:
+            papeleras.first.click()
+            page.wait_for_timeout(700)
+            for txt in ("Eliminar", "Confirmar", "Sí", "Aceptar"):
+                btn = page.get_by_role("button", name=txt)
+                if btn.count() > 0:
+                    btn.first.click()
+                    page.wait_for_timeout(600)
+                    break
+            eliminados += 1
+            page.wait_for_load_state("networkidle")
+        except Exception:
+            break
+    return eliminados
+
+
+def _llenar_interesado(page, p: dict, participacion) -> None:
+    """Llena 'Datos del Nuevo Interesado' con la persona p y el % indicado, y pulsa
+    'Agregar Propietario'. Usa _select_spa para que los desplegables registren el valor."""
+    i = _idx_select_con(page, "Persona Natural", "Persona Jurídica")
+    if i < 0:
         print("  No se encontro 'Tipo Interesado'. ¿Es el Paso 2 de Cambio de Propietario?")
         return
+    _select_spa(page, i, "Persona Natural")
+    print("  Tipo Interesado = Persona Natural")
+    page.wait_for_timeout(700)
 
-    # 2) Tipo de Documento = Cédula de Ciudadanía (buscar el select que la contenga).
-    if elegir({"Cédula de Ciudadanía"}, "Cédula de Ciudadanía"):
+    i = _idx_select_con(page, "Cédula de Ciudadanía")
+    if i >= 0:
+        _select_spa(page, i, "Cédula de Ciudadanía")
         print("  Tipo de Documento = Cédula de Ciudadanía")
-        page.wait_for_timeout(400)
 
-    # 3-6) Campos de texto por POSICION (mas confiable que el label en esta SPA).
-    # Orden de inputs de texto del formulario de nuevo interesado:
-    #   [0] Nº Documento  [1] Razon Social  [2] Primer Nombre  [3] Segundo Nombre
-    #   [4] Primer Apellido  [5] Segundo Apellido  [6] % Participacion (number)
     textos = page.locator("input[type='text'], input:not([type])")
-    def fill_idx(idx, valor, etiqueta):
+
+    def fill_idx(idx, valor):
         try:
             if idx < textos.count():
                 textos.nth(idx).fill(valor)
-                print(f"  {etiqueta} = {valor}")
                 return True
         except Exception:
             pass
-        print(f"  [aviso] no se pudo llenar {etiqueta} (idx {idx}).")
         return False
+    fill_idx(0, p["doc"])
+    fill_idx(2, p["n1"])
+    fill_idx(3, p["n2"])
+    fill_idx(4, p["a1"])
+    fill_idx(5, p["a2"])
+    print(f"  Interesado = {p['n1']} {p['n2']} {p['a1']} {p['a2']} ({p['sexo']}) doc {p['doc']}")
 
-    fill_idx(0, p["doc"], "Nº Documento")
-    # idx 1 = Razon Social (solo juridicas) -> se deja vacio para persona natural.
-    fill_idx(2, p["n1"], "Primer Nombre")
-    fill_idx(3, p["n2"], "Segundo Nombre")
-    fill_idx(4, p["a1"], "Primer Apellido")
-    fill_idx(5, p["a2"], "Segundo Apellido")
-    print(f"  Interesado = {p['n1']} {p['n2']} {p['a1']} {p['a2']} ({p['sexo']})")
-
-    # Sexo y Tipo Derecho (desplegables por opciones).
-    elegir({"Masculino", "Femenino"}, p["sexo"])
-    elegir({"Dominio", "Usufructo"}, "Dominio")
-    print("  Tipo Derecho = Dominio")
-    # Autorreconocimiento etnico = Ninguno (OBLIGATORIO para agregar; no asignar etnia
-    # ficticia). Se ubica el select que contenga 'Afrocolombiano' y se elige 'Ninguno'.
-    if elegir({"Afrocolombiano"}, "Ninguno"):
+    i = _idx_select_con(page, "Masculino", "Femenino")
+    if i >= 0:
+        _select_spa(page, i, p["sexo"])
+        print(f"  Sexo = {p['sexo']}")
+    i = _idx_select_con(page, "Afrocolombiano")
+    if i >= 0:
+        _select_spa(page, i, "Ninguno")
         print("  Autorreconocimiento étnico = Ninguno")
-    else:
-        print("  [aviso] no se pudo fijar Autorreconocimiento étnico.")
-    # Autorreconocimiento campesino: checkbox -> se deja SIN marcar.
+    i = _idx_select_con(page, "Dominio", "Usufructo")
+    if i >= 0:
+        _select_spa(page, i, "Dominio")
+        print("  Tipo Derecho = Dominio")
 
-    # 7) % Participacion: input numerico (placeholder 'Ej: 100').
-    puesto = False
     try:
-        caja_part = page.locator("input[type='number']")
-        if caja_part.count() > 0:
-            caja_part.last.fill(str(participacion))
-            puesto = True
+        caja = page.locator("input[type='number']")
+        if caja.count() > 0:
+            caja.last.fill(str(participacion))
+            caja.last.evaluate(
+                "el => { el.dispatchEvent(new Event('input',{bubbles:true}));"
+                " el.dispatchEvent(new Event('change',{bubbles:true})); }")
     except Exception:
         pass
-    if not puesto:
-        try:
-            page.locator("input[placeholder*='100']").first.fill(str(participacion))
-        except Exception:
-            pass
     print(f"  % Participación = {participacion}")
 
-    # Disparar eventos de cambio: hacer blur/Tab desde el ultimo campo para que la SPA
-    # registre los valores antes de agregar (si no, el boton agrega con datos vacios).
     try:
         page.keyboard.press("Tab")
     except Exception:
         pass
-    page.wait_for_timeout(1000)
+    page.wait_for_timeout(900)
 
-    # 8) Agregar Propietario (contar filas antes/despues para verificar que se agrego).
-    def filas_propietarios():
+    def filas():
         try:
             return page.locator("table tbody tr").count()
         except Exception:
             return 0
-    antes = filas_propietarios()
+    antes = filas()
     boton = page.get_by_role("button", name="Agregar Propietario")
     if boton.count() == 0:
         boton = page.locator("button", has_text="Agregar Propietario")
@@ -909,14 +923,42 @@ def nuevo_propietario(page, semilla: str = "", participacion: str = "100") -> No
         boton.first.click()
         page.wait_for_timeout(1500)
         page.wait_for_load_state("networkidle")
-        despues = filas_propietarios()
-        if despues > antes:
-            print(f"  'Agregar Propietario' OK: la lista paso de {antes} a {despues} propietarios.")
-        else:
-            print(f"  AVISO: tras 'Agregar Propietario' la lista sigue en {despues} filas. "
-                  f"Revisa si falta algun campo obligatorio o pulsar de nuevo.")
+        print(f"  'Agregar Propietario' -> filas: {antes} -> {filas()}")
     else:
-        print("  No se encontro el boton 'Agregar Propietario'. Revisa el formulario.")
+        print("  No se encontro el boton 'Agregar Propietario'.")
+
+
+def nuevo_propietario(page, semilla: str = "", participacion: str = "100",
+                      modo: str = "sustitucion", copropietarios: int = 1) -> None:
+    """Paso 2 de Cambio de Propietario, con dos ramas:
+
+    modo='sustitucion' (MODO_SUSTITUCION_100): ELIMINA los titulares previos y registra
+        UN nuevo titular al % indicado (def. 100).
+    modo='copropiedad' (MODO_INCORPORACION_COPROPIEDAD): NO elimina; agrega N nuevos
+        copropietarios repartiendo el 100% en partes iguales. 'copropietarios' = cuantos.
+
+    Datos sinteticos UNICOS por titular. Los <select> se fijan con evento change.
+    """
+    import random
+    rnd = random.Random(semilla + "-prop") if semilla else random.Random()
+
+    if modo.lower().startswith("sust"):
+        n = _eliminar_propietarios_existentes(page)
+        print(f"  MODO SUSTITUCION: eliminados {n} propietario(s) previo(s).")
+        page.wait_for_timeout(600)
+        p = _nueva_persona_unica(rnd)
+        _llenar_interesado(page, p, participacion)
+    else:
+        total = max(1, int(copropietarios))
+        base = 100 // total
+        cuotas = [base] * total
+        cuotas[-1] += 100 - base * total
+        print(f"  MODO COPROPIEDAD: {total} nuevos titulares, cuotas {cuotas} (suma 100).")
+        for k in range(total):
+            p = _nueva_persona_unica(rnd)
+            print(f"  -- Copropietario {k+1}/{total} ({cuotas[k]}%) --")
+            _llenar_interesado(page, p, str(cuotas[k]))
+            page.wait_for_timeout(800)
 
 
 def llenar_construccion(page, anio: str = "", semilla: str = "") -> None:
@@ -1757,11 +1799,14 @@ def repl(page, base_url: str) -> None:
                 sem_c = partes_c[1] if len(partes_c) > 1 else ""
                 llenar_construccion(page, anio_c, sem_c)
             elif cmd == "propietario":
-                # Uso: propietario [semilla] [participacion]  (def. 100)
+                # Uso: propietario [semilla] [modo] [n]
+                #   modo: sustitucion (def) | copropiedad
+                #   n: nº de copropietarios (solo copropiedad). Ej: propietario R-0081 copropiedad 2
                 partes_p = arg.split()
                 sem_p = partes_p[0] if partes_p else ""
-                part_p = partes_p[1] if len(partes_p) > 1 else "100"
-                nuevo_propietario(page, sem_p, part_p)
+                modo_p = partes_p[1] if len(partes_p) > 1 else "sustitucion"
+                n_p = int(partes_p[2]) if len(partes_p) > 2 and partes_p[2].isdigit() else 1
+                nuevo_propietario(page, sem_p, "100", modo_p, n_p)
             elif cmd == "direccion":
                 # Uso: direccion <vpValor> <vpLetra> <vgValor> <vgLetra> <numPredio>
                 partes_dir = arg.split()

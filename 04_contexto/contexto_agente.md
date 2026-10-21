@@ -890,6 +890,20 @@ wizard (rellenan de corrido con datos sinteticos coherentes y no repetidos):
     SIEMPRE en los casos automaticos. No asignar etnia ficticia a datos de prueba.
   - El checkbox "Autorreconocimiento campesino" se deja SIN marcar.
   - REGLA de datos: nombres y documentos UNICOS, no repetir entre tramites.
+  - **DOS MODOS de negocio (parametrizados en el comando):**
+    - `MODO_SUSTITUCION_100` (`propietario <rad>`): ELIMINA el/los titular(es) previo(s)
+      con la papelera `delete` y registra 1 nuevo titular al 100%. El nuevo REEMPLAZA.
+    - `MODO_INCORPORACION_COPROPIEDAD` (`propietario <rad> copropiedad <n>`): NO elimina;
+      agrega n copropietarios repartiendo el 100% en partes iguales (2->50/50,
+      3->34/33/33). La suma SIEMPRE debe dar exactamente 100. (El ajuste del % del
+      titular existente via boton Editar se hace aparte / manual si aplica.)
+  - **Secuencia sustitucion:** (1) eliminar titular actual (icono papelera), (2) llenar
+    'Datos del Nuevo Interesado', (3) 'Agregar Propietario'.
+  - **FIX tecnico de <select>:** `select_option` por si solo NO disparaba el evento
+    change de la SPA y el valor quedaba en "None" (error `2_CLLC_L76`: "Persona Natural
+    con sexo None invalido"). El comando ahora dispara input+change por JS tras cada
+    seleccion (helper `_select_spa`).
+  - Dejar constancia de la distribucion de titulares en el resumen.txt del tramite.
   - REGLA de calificacion: **CONSERVADORA** (sencillo/regular, bajo-medio puntaje). NO
     calificar alto para no inflar el avaluo ni perjudicar al propietario. Coherente con
     la info de las plantas (vivienda estandar).
