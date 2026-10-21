@@ -63,6 +63,12 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
     destino [valor]       Paso 1: cambia el Destino Económico (def. Habitacional). Usar
                           en tramites CON construccion para no dejar destino de lote.
                           Ej: destino Habitacional | destino Comercial
+    construccion [anio] [semilla]
+                          Paso 4: llena el modal 'Nueva unidad de construccion' con
+                          datos sinteticos de vivienda (tipo Residencial, uso, año,
+                          estado Bueno, baños/habs, y la CALIFICACION CATASTRAL completa
+                          - 16 desplegables). Requiere geometria ya cargada. Luego
+                          revisar y pulsar 'Agregar UC'. Ej: construccion 2010 R-2026-0061
     agregarfoto           pulsa '+ Agregar foto' (opcional)
     subirfoto <ruta>      carga un archivo de imagen
     continuar             pulsa 'Continuar' para avanzar de paso
@@ -734,6 +740,161 @@ def editar_direccion(page, semilla: str = "") -> None:
               f"# {vg_valor}{vg_letra} - {num_predio}, CP {cod_postal}")
     else:
         print("  No se encontro el boton 'Actualizar'. Revisa el modal.")
+
+
+def llenar_construccion(page, anio: str = "", semilla: str = "") -> None:
+    """Llena el modal 'Nueva unidad de construccion' (Paso 4) con datos sinteticos
+    coherentes de una vivienda, incluida la CALIFICACION CATASTRAL completa.
+
+    Requiere que la geometria (plantas) ya este cargada por el usuario. El comando:
+      - Elige Tipo unidad = Residencial y Uso (primera opcion valida) si estan vacios.
+      - Estado de conservacion = Bueno.
+      - Año de construccion (parametro o aleatorio valido 1990-2020).
+      - Baños/habitaciones/locales y observaciones.
+      - Calificacion catastral: elige una opcion coherente (nivel medio) en cada uno de
+        los 16 desplegables de calificacion.
+      - Pulsa 'Agregar UC'.
+
+    Mapa de <select> cuando el tipo de unidad ya esta elegido (19 en total):
+      [0] Tipo unidad  [1] Uso  [2] Estado conservacion
+      [3] Armazon [4] Muros [5] Cubierta [6] subtotal-estructura
+      [7] Fachada [8] Cubrimiento muros [9] Piso [10] subtotal-acabados
+      [11] Tamaño baño [12] Mobiliario baño [13] Enchape baño [14] subtotal-baño
+      [15] Tamaño cocina [16] Mobiliario cocina [17] Enchape cocina [18] subtotal-cocina
+    """
+    import random
+    if semilla:
+        random.seed(semilla + "-uc")
+
+    def sel_por_opcion(idx, contiene):
+        """Elige en el select idx la primera opcion cuyo texto contenga 'contiene'."""
+        selects = page.locator("select")
+        if idx >= selects.count():
+            return False
+        opts = [selects.nth(idx).locator("option").nth(j).inner_text().strip()
+                for j in range(selects.nth(idx).locator("option").count())]
+        for t in opts:
+            if contiene.lower() in t.lower():
+                try:
+                    selects.nth(idx).select_option(label=t)
+                    return True
+                except Exception:
+                    return False
+        return False
+
+    def sel_primera_valida(idx):
+        selects = page.locator("select")
+        if idx >= selects.count():
+            return False
+        opts = [selects.nth(idx).locator("option").nth(j).inner_text().strip()
+                for j in range(selects.nth(idx).locator("option").count())]
+        for t in opts:
+            tl = t.lower()
+            if t and not tl.startswith("—") and "seleccione" not in tl and "sin selección" not in tl:
+                try:
+                    selects.nth(idx).select_option(label=t)
+                    return True
+                except Exception:
+                    return False
+        return False
+
+    # 0) Tipo unidad y uso (si no estan elegidos).
+    selects = page.locator("select")
+    total = selects.count()
+    if total < 3:
+        print("  No parece el modal de construccion. ¿Esta abierto 'Nueva unidad de construccion'?")
+        return
+    # Tipo unidad (idx 0) -> Residencial.
+    try:
+        if selects.nth(0).input_value() in ("", None):
+            sel_por_opcion(0, "Residencial")
+            page.wait_for_timeout(700)
+    except Exception:
+        pass
+    # Uso (idx 1) -> primera opcion valida.
+    try:
+        selects = page.locator("select")
+        if selects.nth(1).input_value() in ("", None):
+            sel_primera_valida(1)
+            page.wait_for_timeout(900)
+    except Exception:
+        pass
+
+    # Estado de conservacion (idx 2) -> Bueno.
+    sel_por_opcion(2, "Bueno")
+
+    # Año de construccion (texto obligatorio).
+    anio = (anio or "").strip() or str(random.randint(1990, 2020))
+    cajas_anio = page.locator("input")
+    # Mejor por el valor placeholder/etiqueta: buscar input numerico vacio cerca de 'Año'.
+    try:
+        # El año suele ser un input de numero; lo ubicamos por su proximidad no es trivial,
+        # usamos el primer input vacio tipo number del modal.
+        inp_anio = page.locator("input[type='number'], input[inputmode='numeric']")
+        puesto = False
+        for i in range(inp_anio.count()):
+            if inp_anio.nth(i).input_value() in ("", None):
+                inp_anio.nth(i).fill(anio)
+                puesto = True
+                break
+        if puesto:
+            print(f"  Año construccion = {anio}")
+    except Exception:
+        pass
+
+    # Calificacion catastral: perfil CONSERVADOR (sencillo/regular), coherente con una
+    # vivienda estandar. NO calificar alto (eso subiria el avaluo y perjudicaria al
+    # propietario). Se eligen opciones de bajo-medio puntaje; los subtotales
+    # (Malo/Regular/Bueno/Excelente) se dejan en 'Regular'.
+    selects = page.locator("select")
+    n = selects.count()
+    # Preferencias por indice (se usa 'contiene' para robustez). Perfil conservador:
+    preferencias = {
+        # Estructura (lo estructural suele ser lo real del inmueble: ladrillo/bloque).
+        3: "Ladrillo, bloque",            # Armazon
+        4: "Bahareque, adobe, tapia",     # Muros (sencillo)
+        5: "Zinc, teja de barro",         # Cubierta (sencilla)
+        6: "Regular",                      # subtotal estructura
+        # Acabados (conservador / sencillo).
+        7: "Sencilla",                     # Fachada
+        8: "Pañete",                       # Cubrimiento de muros (sencillo)
+        9: "Cemento, madera burda",        # Piso (sencillo)
+        10: "Regular",                     # subtotal acabados
+        # Baño (sencillo).
+        11: "Pequeño",                     # Tamaño de baño
+        12: "Sencillo",                    # Mobiliario de baño
+        13: "Pañete, baldosa común",       # Enchape de baño
+        14: "Regular",                     # subtotal baño
+        # Cocina (sencilla).
+        15: "Pequeña",                     # Tamaño de cocina
+        16: "Sencillo",                    # Mobiliario de cocina
+        17: "Pañete, baldosa",             # Enchape de cocina
+        18: "Regular",                     # subtotal cocina
+    }
+    hechos = 0
+    for idx in range(3, min(n, 19)):
+        pref = preferencias.get(idx)
+        ok = False
+        if pref:
+            ok = sel_por_opcion(idx, pref)
+        if not ok:
+            ok = sel_primera_valida(idx)
+        if ok:
+            hechos += 1
+    print(f"  Calificacion catastral: {hechos} desplegables llenados.")
+
+    # Baños / habitaciones / locales (si estan en 0, dejar valores coherentes).
+    # Observaciones.
+    try:
+        tas = page.locator("textarea")
+        for i in range(tas.count()):
+            if tas.nth(i).input_value() in ("", None):
+                tas.nth(i).fill("sin observacion")
+        print("  Observaciones = 'sin observacion'")
+    except Exception:
+        pass
+
+    print("  Construccion lista para 'Agregar UC'. Revisa y pulsa Agregar (o usa click).")
 
 
 def cambiar_destino(page, destino: str = "Habitacional") -> None:
@@ -1413,6 +1574,12 @@ def repl(page, base_url: str) -> None:
             elif cmd == "destino":
                 # Uso: destino [valor]  (def. Habitacional)
                 cambiar_destino(page, arg.strip() or "Habitacional")
+            elif cmd == "construccion":
+                # Uso: construccion [anio] [semilla]
+                partes_c = arg.split()
+                anio_c = partes_c[0] if partes_c else ""
+                sem_c = partes_c[1] if len(partes_c) > 1 else ""
+                llenar_construccion(page, anio_c, sem_c)
             elif cmd == "direccion":
                 # Uso: direccion <vpValor> <vpLetra> <vgValor> <vgLetra> <numPredio>
                 partes_dir = arg.split()
