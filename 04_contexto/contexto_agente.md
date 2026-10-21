@@ -934,6 +934,25 @@ sigue guardada en el perfil).
 
 ---
 
+### REGLA: al decir "comencemos" entregar los 2 comandos de terminal
+
+Cuando el usuario diga "comencemos" (o similar), el agente SIEMPRE entrega de una los
+DOS comandos para arrancar el entorno, listos para copiar:
+
+Terminal 1 (navegador persistente; dejar abierta, iniciar sesion una vez, NO DevTools):
+```
+cd C:\Users\Jorge\Desktop\Smartcube\05_codigo
+uv run python navegador.py
+```
+
+Terminal 2 (REPL de comandos):
+```
+cd C:\Users\Jorge\Desktop\Smartcube\05_codigo
+uv run python qa.py
+```
+
+(Para el procesamiento en lote, Terminal 2 seria `uv run python lote_qa.py` en vez de qa.py.)
+
 ## 12. Para retomar (próxima sesión)
 
 1. Lanzar el entorno (dos terminales, en `05_codigo/`):
