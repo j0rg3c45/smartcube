@@ -78,6 +78,10 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
                             repartiendo 100% en partes iguales.
                           Ej: propietario R-2026-0081            (sustitucion 100%)
                           Ej: propietario R-2026-0082 copropiedad 2  (2 al 50%)
+    cancelacion [semilla] Tramite 'Cancelaciones - Fuerza Mayor' (3 pasos): llena el
+                          Motivo de la cancelacion (causa de fuerza mayor variada) y la
+                          Fuente Administrativa, avanza al Resumen y valida. NO pasa a
+                          calidad. Ej: cancelacion R-2026-0086
     tramitepropietario [semilla] [modo] [n]
                           Proceso COMPLETO de Cambio de Propietario (estando en Paso 2):
                           hace el cambio y AVANZA hasta el Resumen validando. NO pasa a
@@ -963,6 +967,110 @@ def nuevo_propietario(page, semilla: str = "", participacion: str = "100",
             print(f"  -- Copropietario {k+1}/{total} ({cuotas[k]}%) --")
             _llenar_interesado(page, p, str(cuotas[k]))
             page.wait_for_timeout(800)
+
+
+def tramite_cancelacion(page, semilla: str = "") -> None:
+    """Proceso COMPLETO de un tramite 'Cancelaciones - Fuerza Mayor' (3 pasos:
+    Fuente Administrativa -> Resumen -> Borrador Resolucion).
+
+    Paso 1: llena el 'Motivo de la cancelacion' (causa de fuerza mayor, texto variado y
+    sintetico, no repetido) y la Fuente Administrativa (reutiliza fuente_administrativa).
+    Luego avanza al Resumen y lee las validaciones. NO pasa a calidad (critico, lo
+    confirma el usuario).
+
+    Devuelve un dict con los datos usados (para el resumen.txt).
+    """
+    import random
+    import re as _re
+    rnd = random.Random(semilla + "-cancel") if semilla else random.Random()
+
+    # Motivos de fuerza mayor (variados). Se arma con numeros/fechas ficticias.
+    anio = rnd.randint(2023, 2026)
+    mes = rnd.randint(1, 12)
+    dia = rnd.randint(1, 28)
+    fecha = f"{dia:02d}/{mes:02d}/{anio}"
+    num_acta = rnd.randint(100, 999)
+    plantillas = [
+        (f"Predio afectado por fenomeno de remocion en masa que ocasiono el hundimiento "
+         f"total y la falla geologica del terreno el {fecha}, imposibilitando su "
+         f"existencia fisica, segun concepto tecnico de gestion del riesgo No. {num_acta}."),
+        (f"Predio sumergido de forma permanente por desbordamiento y cambio de cauce del "
+         f"rio el {fecha}, con perdida total por afectacion de ribera, segun informe "
+         f"pericial de visita de campo No. {num_acta}."),
+        (f"Desaparicion del terreno por socavacion y colapso de ladera por erosion severa "
+         f"ocurrida el {fecha}, segun resolucion de declaratoria de calamidad publica "
+         f"No. {num_acta}."),
+        (f"Predio destruido por avenida torrencial e inundacion subita el {fecha}, que "
+         f"dejo el lote sumergido de forma permanente, segun acta de gestion del riesgo "
+         f"No. {num_acta}."),
+    ]
+    motivo = rnd.choice(plantillas)
+
+    # 1) Motivo de la cancelacion (textarea obligatorio, el primero del formulario).
+    try:
+        ta = page.locator("textarea")
+        if ta.count() > 0:
+            ta.first.fill(motivo)
+            ta.first.evaluate(
+                "el => { el.dispatchEvent(new Event('input',{bubbles:true}));"
+                " el.dispatchEvent(new Event('change',{bubbles:true})); }")
+            print(f"  Motivo de la cancelacion: {motivo}")
+        else:
+            print("  [aviso] no se encontro el textarea del motivo de cancelacion.")
+    except Exception as e:
+        print(f"  [aviso] motivo de cancelacion: {type(e).__name__}")
+
+    # 2) Fuente Administrativa (desplegables + numeros/fechas) -> reutiliza la funcion.
+    try:
+        fuente_administrativa(page, semilla)
+    except Exception as e:
+        print(f"  [aviso] fuente administrativa: {type(e).__name__}")
+
+    page.wait_for_timeout(800)
+
+    # 3) Avanzar al Resumen (este wizard es corto: Fuente -> Resumen).
+    for _ in range(4):
+        n = detectar_paso(page)
+        # En este tipo el stepper tiene 3 pasos; 'detectar_paso' puede no mapearlo igual,
+        # asi que avanzamos por el boton y nos detenemos al ver el Resumen.
+        try:
+            cuerpo = page.locator("body").inner_text()
+        except Exception:
+            cuerpo = ""
+        if "Resumen Final" in cuerpo or "Validaciones del tr" in cuerpo:
+            break
+        continuar_wizard(page)
+        page.wait_for_timeout(1300)
+
+    # 4) Re-validar y leer conteo.
+    try:
+        rev = page.get_by_role("button", name="Re-validar")
+        if rev.count() == 0:
+            rev = page.locator("button", has_text="validar")
+        if rev.count() > 0:
+            rev.first.click()
+            page.wait_for_timeout(2500)
+            page.wait_for_load_state("networkidle")
+    except Exception:
+        pass
+    errores = None
+    try:
+        cuerpo = page.locator("body").inner_text()
+        def _conteo(etq):
+            m = _re.search(r"(\d+)\s*[\r\n]+\s*" + etq, cuerpo, _re.IGNORECASE)
+            return m.group(1) if m else None
+        errores = _conteo("ERRORES")
+        print(f"  VALIDACIONES -> errores: {errores or '?'} | "
+              f"warnings: {_conteo('WARNINGS') or '?'} | ok: {_conteo('OK') or '?'}")
+        if errores == "0":
+            print("  >>> 0 ERRORES. Listo para 'Pasar borrador acto administrativo' y")
+            print("  >>> 'Pasar a calidad' (ACCIONES CRITICAS, las confirma el usuario).")
+        elif errores is not None:
+            print(f"  >>> HAY {errores} ERROR(ES): revisar antes de calidad.")
+    except Exception:
+        pass
+    print("  (El comando NO pasa a calidad automaticamente.)")
+    return {"motivo": motivo, "errores": errores}
 
 
 def tramite_propietario_completo(page, semilla: str = "", modo: str = "sustitucion",
@@ -1899,6 +2007,9 @@ def repl(page, base_url: str) -> None:
                 modo_p = partes_p[1] if len(partes_p) > 1 else "sustitucion"
                 n_p = int(partes_p[2]) if len(partes_p) > 2 and partes_p[2].isdigit() else 1
                 nuevo_propietario(page, sem_p, "100", modo_p, n_p)
+            elif cmd == "cancelacion":
+                # Uso: cancelacion [semilla]  -> Cancelaciones - Fuerza Mayor completo
+                tramite_cancelacion(page, arg.strip())
             elif cmd == "tramitepropietario":
                 # Uso: tramitepropietario [semilla] [modo] [n]  -> cambio de propietario
                 # + avanza hasta el Resumen y valida (NO pasa a calidad).

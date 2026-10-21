@@ -552,6 +552,22 @@ Durante la corrida: NO usar el navegador ni abrir DevTools.
 > quedar "sin valor en tabla de avaluo" segun la zona (ej. uso residencial urbano en
 > zona 00 rural). Validar si es limitacion de la tabla de avaluo o eleccion de uso.
 
+### Tipo de trámite: Cancelaciones - Fuerza Mayor (R-2026-0086)
+
+Tipo "Mutación Integral / Cancelaciones - Fuerza Mayor" (R-2026-0086, Tramite #92,
+NPN 763640001000000070294500000015, Predio #4216). Estructura DISTINTA y mas corta:
+solo **3 pasos**: (1) Fuente Administrativa, (2) Resumen, (3) Borrador Resolucion.
+NO tiene Predio/Propietario/Terreno/Construccion/Avaluo. Por eso el lote (`lote_qa.py`)
+no lo pudo procesar (esperaba 7-8 pasos) y lo marco "no determinado".
+
+- **Paso 1 Fuente Administrativa:** campo OBLIGATORIO "Motivo de la cancelacion"
+  (textarea; queda en el historico y la resolucion), + los 7 desplegables de Fuente
+  Administrativa estandar (iguales a `fuenteadmin`).
+- Comando `cancelacion [semilla]`: llena el motivo de fuerza mayor (variado: remocion en
+  masa/sismo, inundacion/ribera, socavacion/erosion, avenida torrencial; con nº de acta
+  y fecha ficticia, sin repetir) + fuente administrativa, avanza al Resumen y valida.
+  NO pasa a calidad (lo confirma el usuario).
+
 ### Tipos de trámite (ampliado, dry-run 19/10/2026)
 
 - R-2026-0062: Mutación 4a Clase - Revisión Avalúo. NPN 763640100000000030012000000000.
