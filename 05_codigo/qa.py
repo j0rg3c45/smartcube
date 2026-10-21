@@ -78,6 +78,10 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
                             repartiendo 100% en partes iguales.
                           Ej: propietario R-2026-0081            (sustitucion 100%)
                           Ej: propietario R-2026-0082 copropiedad 2  (2 al 50%)
+    tramitepropietario [semilla] [modo] [n]
+                          Proceso COMPLETO de Cambio de Propietario (estando en Paso 2):
+                          hace el cambio y AVANZA hasta el Resumen validando. NO pasa a
+                          calidad (critico, lo confirma el usuario). Ej: tramitepropietario R-2026-0081
     agregarfoto           pulsa '+ Agregar foto' (opcional)
     subirfoto <ruta>      carga un archivo de imagen
     continuar             pulsa 'Continuar' para avanzar de paso
@@ -961,6 +965,84 @@ def nuevo_propietario(page, semilla: str = "", participacion: str = "100",
             page.wait_for_timeout(800)
 
 
+def tramite_propietario_completo(page, semilla: str = "", modo: str = "sustitucion",
+                                copropietarios: int = 1) -> None:
+    """Proceso COMPLETO de un Cambio de Propietario de corrido, asumiendo que ya se esta
+    dentro del wizard en el Paso 2 (Propietario):
+
+    1. Ejecuta el cambio de propietario (nuevo_propietario, modo indicado).
+    2. Avanza paso a paso (Siguiente Paso / Continuar) hasta llegar al Resumen (paso 6/7).
+       En pasos cartograficos (Terreno/Construccion) intenta continuar sin geometria
+       (Cambio de Propietario no la exige). Si un paso bloquea, se detiene limpio.
+    3. En el Resumen, dispara 'Re-validar' si existe y lee el conteo de validaciones.
+    4. NO pulsa 'Pasar a calidad' (accion critica): se detiene e informa para que el
+       usuario revise y confirme.
+    """
+    import re as _re
+    # 1) Cambio de propietario en el Paso 2.
+    nuevo_propietario(page, semilla, "100", modo, copropietarios)
+    page.wait_for_timeout(1000)
+
+    # 2) Avanzar por el wizard hasta el Resumen.
+    ultimo = None
+    estancado = 0
+    for _ in range(14):
+        n = detectar_paso(page)
+        if n is None:
+            break
+        if n == ultimo:
+            estancado += 1
+        else:
+            estancado = 0
+        ultimo = n
+        if n >= 6:  # Resumen (en Cambio de Propietario el Resumen suele ser el paso 6)
+            break
+        # Pasos alfanumericos que podemos completar en el camino.
+        if n == 5:
+            try:
+                fuente_administrativa(page, semilla)
+            except Exception:
+                pass
+        # Intentar avanzar.
+        continuar_wizard(page)
+        page.wait_for_timeout(1300)
+        nuevo = detectar_paso(page)
+        if nuevo == n:
+            # No avanzo. Si es cartografico, se detiene (reserva usuario). Si no, reintenta.
+            if estancado >= 2:
+                print(f"  Detenido en Paso {n}: no avanza (posible geometria/validacion requerida).")
+                return
+
+    # 3) En el Resumen: re-validar y leer conteo.
+    n = detectar_paso(page)
+    print(f"  Paso actual tras avanzar: {n}")
+    try:
+        rev = page.get_by_role("button", name="Re-validar")
+        if rev.count() == 0:
+            rev = page.locator("button", has_text="validar")
+        if rev.count() > 0:
+            rev.first.click()
+            page.wait_for_timeout(3000)
+            page.wait_for_load_state("networkidle")
+    except Exception:
+        pass
+    try:
+        cuerpo = page.locator("body").inner_text()
+        m_err = _re.search(r"(\d+)\s*\n?\s*ERRORES", cuerpo)
+        m_warn = _re.search(r"(\d+)\s*\n?\s*WARNINGS", cuerpo)
+        m_ok = _re.search(r"(\d+)\s*\n?\s*OK", cuerpo)
+        errores = m_err.group(1) if m_err else "?"
+        print(f"  VALIDACIONES -> errores: {errores} | "
+              f"warnings: {m_warn.group(1) if m_warn else '?'} | ok: {m_ok.group(1) if m_ok else '?'}")
+        if errores == "0":
+            print("  >>> 0 errores. Puedes pulsar 'Pasar a calidad' (accion CRITICA, hazlo tu).")
+        else:
+            print("  >>> HAY ERRORES: corrige antes de pasar a calidad. NO se paso a calidad.")
+    except Exception:
+        print("  No se pudo leer el conteo de validaciones; revisa con 'cap'.")
+    print("  (El comando NO pasa a calidad automaticamente. Revisa y confirma tu.)")
+
+
 def llenar_construccion(page, anio: str = "", semilla: str = "") -> None:
     """Llena el modal 'Nueva unidad de construccion' (Paso 4) con datos sinteticos
     coherentes de una vivienda, incluida la CALIFICACION CATASTRAL completa.
@@ -1807,6 +1889,14 @@ def repl(page, base_url: str) -> None:
                 modo_p = partes_p[1] if len(partes_p) > 1 else "sustitucion"
                 n_p = int(partes_p[2]) if len(partes_p) > 2 and partes_p[2].isdigit() else 1
                 nuevo_propietario(page, sem_p, "100", modo_p, n_p)
+            elif cmd == "tramitepropietario":
+                # Uso: tramitepropietario [semilla] [modo] [n]  -> cambio de propietario
+                # + avanza hasta el Resumen y valida (NO pasa a calidad).
+                partes_tp = arg.split()
+                sem_tp = partes_tp[0] if partes_tp else ""
+                modo_tp = partes_tp[1] if len(partes_tp) > 1 else "sustitucion"
+                n_tp = int(partes_tp[2]) if len(partes_tp) > 2 and partes_tp[2].isdigit() else 1
+                tramite_propietario_completo(page, sem_tp, modo_tp, n_tp)
             elif cmd == "direccion":
                 # Uso: direccion <vpValor> <vpLetra> <vgValor> <vgLetra> <numPredio>
                 partes_dir = arg.split()
