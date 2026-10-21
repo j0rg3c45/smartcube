@@ -530,7 +530,23 @@ Durante la corrida: NO usar el navegador ni abrir DevTools.
     construccion). Caracterizacion LADM readonly (Tipo Predio/Derecho en "—").
   - Paso 2 Propietario: NO requiere ajustes, viene completo (no falta nada).
   - Pasos cartograficos (Terreno/Construccion): reserva del usuario; este tramite SI
-    lleva construccion (hay que cargar geometria de la UC).
+    lleva construccion. El usuario cargo la geometria (2 plantas, 212.41 m2) y se lleno
+    la UC con `construccion` (calificacion conservadora). UC nueva creada OK.
+  - Paso 5 Fuente Admin y Paso 6 Avaluo 2025: completados por el usuario avanzando.
+  - **Paso 7 Resumen (21/10): 2 ERRORES que bloquean, 1 warning, 58 OK.** Pendiente de
+    AJUSTE DEL USUARIO:
+    1. `3_ET_CF_108` EXACTITUD TEMATICA: area digitada 328.00 m2 vs poligono 225.73 m2
+       difieren 45.3% (> 10%). Hay que corregir el area o la geometria (cartografico).
+    2. `CUSTOM_AVALUO_COMPLETO` CONSISTENCIA DE AVALUO: "UC A sin valor en tabla (zona 00,
+       agro False, uso 2, puntaje 28)". El uso elegido (Apartamentos 4+ = uso 2) en zona
+       00 (rural) no tiene valor en la tabla de avaluo. A revisar: cambiar el uso de la
+       UC por uno con valor en tabla para esa zona; si ningun uso tiene valor -> HALLAZGO.
+  - Tras ajustar, pulsar RE-VALIDAR. QUEDAMOS AQUI (21/10/2026): sesion pausada en el
+    Paso 7 de 0061 con esos 2 errores por resolver.
+
+> OBSERVACION para el informe (posible hallazgo): la calificacion/uso de la UC puede
+> quedar "sin valor en tabla de avaluo" segun la zona (ej. uso residencial urbano en
+> zona 00 rural). Validar si es limitacion de la tabla de avaluo o eleccion de uso.
 
 ### Tipos de trámite (ampliado, dry-run 19/10/2026)
 
