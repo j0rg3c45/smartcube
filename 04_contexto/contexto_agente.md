@@ -603,6 +603,10 @@ Caracteristicas observadas:
 > poligono (tolerancia 10%, tabla 109 IGAC IN-GCT-PC01-06); el analista debe ajustarlo
 > manualmente cada vez. Candidato a recomendacion (validacion/ajuste asistido de area).
 
+> R-2026-0062 QUEDO LISTO (21/10/2026): Revision de Avaluo. En este tipo SOLO se carga/
+> ajusta el TERRENO (no hay construccion, es lote). El usuario ajusto el area del terreno
+> y quedo. Resumen en 03_tramites/07_tramite_R-2026-0062/resumen_R-2026-0062.txt.
+
 > MAPEO DE CAMPOS EDITABLES (ir completando conforme se recorren los pasos):
 > - Paso 1 Predio: DEJA EDITAR:
 >     * DIRECCION (se estructura con `editardireccion` - ya lo hacemos).
