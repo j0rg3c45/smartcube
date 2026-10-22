@@ -396,6 +396,25 @@ automática. Pendiente: crear en `qa.py` comandos de alto nivel (p. ej. `fuentea
 `avaluo <año>`) que rellenen de corrido con datos de prueba, dejando al usuario solo lo
 que varía (dirección, propietario, shape/geometría, año del retroactivo).
 
+### REGLA: motor AUTO-ADAPTATIVO (autopaso / tramiteauto)
+
+Para tipos de tramite NUEVOS o atipicos, el agente usa inspeccion dinamica del DOM en
+vez de mapear a mano cada campo:
+- `autopaso [semilla]`: escanea input/select/textarea del paso actual, CLASIFICA
+  editable vs bloqueado (disabled/readonly), y LLENA los editables vacios con datos
+  sinteticos coherentes (reglas: matricula numerica, NO inventar NPN en campos sueltos,
+  año valido 1990-2020, % = 100, documento numerico, observacion "sin observacion").
+  Registra los bloqueados. NO marca checkboxes (pueden ser sensibles). NO toca geometria.
+- `tramiteauto [semilla] [anio]`: recorre el wizard de corrido hasta el Resumen aplicando
+  `autopaso` por paso + 'Calcular retroactivo' (avaluo) donde lo detecte. Geometria
+  (terreno/construccion) = RESERVA del usuario (avanza con Siguiente). NO pasa a calidad.
+- Modo de operacion con autonomia total: no consultar dudas intermedias; solo detenerse
+  ante error critico (crash, sesion caida, pantalla en blanco). El resumen.txt consolida:
+  identificacion, mapeo de campos editables/bloqueados, datos aplicados, pendientes
+  geograficos.
+- Limites que se MANTIENEN: la geometria la carga el usuario; 'Pasar a calidad' (critico
+  e irreversible) lo confirma/pulsa el usuario.
+
 ### REGLA: procesamiento en LOTE + resumen.txt por tramite
 
 Modo de trabajo en lote sobre los radicados en estado Asignado (pendientes):

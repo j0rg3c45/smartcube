@@ -89,6 +89,14 @@ Comandos del REPL (escribe 'ayuda' dentro de la sesion):
                           Mutacion 3a: tras AJUSTAR la construccion (geometria + edicion
                           de calificacion), edita la UC y avanza Fuente Admin + Avaluo +
                           Resumen validando. (Usar si se proceso la construccion aparte.)
+    autopaso [semilla]    AUTO-ADAPTATIVO: inspecciona el paso actual, llena los campos
+                          EDITABLES (input/select/textarea) con datos sinteticos y
+                          registra los bloqueados (disabled/readonly). No toca geometria.
+    tramiteauto [semilla] [anio]
+                          Motor AUTO-ADAPTATIVO: recorre el wizard de corrido hasta el
+                          Resumen aplicando autopaso en cada paso + avaluo (año def 2025).
+                          Geometria = reserva del usuario; NO pasa a calidad. Sirve para
+                          tipos nuevos/atipicos. Ej: tramiteauto R-2026-0062 2025
     cancelacion [semilla] Tramite 'Cancelaciones - Fuerza Mayor' (3 pasos): llena el
                           Motivo de la cancelacion (causa de fuerza mayor variada) y la
                           Fuente Administrativa, avanza al Resumen y valida. NO pasa a
@@ -1195,6 +1203,191 @@ def tramite3a_fin(page, semilla: str = "", anio_avaluo: str = "2025") -> None:
     print("  (El comando NO pasa a calidad automaticamente.)")
 
 
+def _valor_sintetico_para(nombre: str, tipo: str, rnd) -> str:
+    """Devuelve un valor sintetico coherente segun el nombre/placeholder y el tipo de
+    input, aplicando reglas catastrales basicas."""
+    n = (nombre or "").lower()
+    if tipo == "date":
+        anio = rnd.randint(2008, 2022)
+        return f"{anio:04d}-{rnd.randint(1,12):02d}-{rnd.randint(1,28):02d}"
+    if "matric" in n or "folio" in n:
+        return str(rnd.randint(100000, 999999))        # matricula: solo numerica
+    if "npn" in n or "predial" in n:
+        return ""  # NO inventar NPN en campos sueltos
+    if "anio" in n or "año" in n or "year" in n:
+        return str(rnd.randint(1990, 2020))
+    if "area" in n or "área" in n:
+        return str(rnd.randint(40, 500))
+    if "%" in n or "particip" in n or "porcentaje" in n:
+        return "100"
+    if "documento" in n or "cedula" in n or "nit" in n:
+        return str(rnd.randint(10_000_000, 1_299_999_999))
+    if tipo == "number":
+        return str(rnd.randint(1, 50))
+    if "observ" in n or "descrip" in n or "nota" in n:
+        return "sin observacion"
+    # Texto generico corto.
+    return "QA " + str(rnd.randint(100, 999))
+
+
+def autopaso(page, semilla: str = "") -> dict:
+    """Inspeccion DINAMICA del paso actual: escanea inputs/select/textarea/checkbox,
+    clasifica editable vs bloqueado (disabled/readonly) y LLENA los editables vacios con
+    datos sinteticos coherentes. NO toca campos readonly/disabled ni geometria.
+
+    Devuelve un dict con el mapeo {editados:[...], bloqueados:[...]} para el resumen.
+    """
+    import random
+    rnd = random.Random((semilla or "") + "-auto-" + str(random.random()))
+    editados, bloqueados = [], []
+
+    # 1) SELECTS editables: elegir primera opcion valida (no placeholder), con change.
+    selects = page.locator("select")
+    for i in range(selects.count()):
+        s = selects.nth(i)
+        try:
+            dis = s.is_disabled()
+            ro = s.get_attribute("readonly") is not None
+            if dis or ro:
+                bloqueados.append(f"select#{i}")
+                continue
+            if (s.input_value() or "") not in ("", None):
+                continue  # ya tiene valor, no lo piso
+            opts = [s.locator("option").nth(j).inner_text().strip()
+                    for j in range(s.locator("option").count())]
+            objetivo = None
+            for t in opts:
+                tl = t.lower()
+                if t and "seleccione" not in tl and "sin selec" not in tl \
+                   and not t.startswith("—") and "primero" not in tl and "usos de" not in tl:
+                    objetivo = t
+                    break
+            if objetivo:
+                s.select_option(label=objetivo)
+                s.evaluate("el => { el.dispatchEvent(new Event('input',{bubbles:true}));"
+                           " el.dispatchEvent(new Event('change',{bubbles:true})); }")
+                editados.append(f"select#{i}={objetivo}")
+        except Exception:
+            bloqueados.append(f"select#{i}(err)")
+
+    # 2) INPUTS de texto/numero/fecha editables.
+    inputs = page.locator("input")
+    for i in range(inputs.count()):
+        el = inputs.nth(i)
+        try:
+            tipo = (el.get_attribute("type") or "text").lower()
+            if tipo in ("hidden", "file", "radio", "submit", "button", "image"):
+                continue
+            dis = el.is_disabled()
+            ro = el.get_attribute("readonly") is not None
+            if dis or ro:
+                bloqueados.append(f"input[{tipo}]#{i}")
+                continue
+            if tipo == "checkbox":
+                continue  # no marcar checkboxes por defecto (pueden ser sensibles)
+            if (el.input_value() or "") not in ("", None, "0"):
+                continue
+            nombre = (el.get_attribute("placeholder") or el.get_attribute("name")
+                      or el.get_attribute("aria-label") or "")
+            valor = _valor_sintetico_para(nombre, tipo, rnd)
+            if valor == "":
+                continue
+            el.fill(valor)
+            el.evaluate("el => { el.dispatchEvent(new Event('input',{bubbles:true}));"
+                        " el.dispatchEvent(new Event('change',{bubbles:true})); }")
+            editados.append(f"input[{tipo}]#{i}={valor}")
+        except Exception:
+            bloqueados.append(f"input#{i}(err)")
+
+    # 3) TEXTAREAS editables -> 'sin observacion'.
+    tas = page.locator("textarea")
+    for i in range(tas.count()):
+        t = tas.nth(i)
+        try:
+            if t.is_disabled() or t.get_attribute("readonly") is not None:
+                bloqueados.append(f"textarea#{i}")
+                continue
+            if (t.input_value() or "") in ("", None):
+                t.fill("sin observacion")
+                editados.append(f"textarea#{i}")
+        except Exception:
+            pass
+
+    print(f"  [autopaso] editados: {len(editados)} | bloqueados: {len(bloqueados)}")
+    return {"editados": editados, "bloqueados": bloqueados}
+
+
+def tramite_auto(page, semilla: str = "", anio_avaluo: str = "2025") -> dict:
+    """Motor AUTO-ADAPTATIVO: recorre el wizard de corrido hasta el Resumen aplicando
+    inspeccion dinamica (autopaso) en cada paso. Reglas:
+      - Llena todo lo alfanumerico editable (datos sinteticos coherentes).
+      - Geometria (terreno/construccion): NO la carga (reserva del usuario); avanza.
+      - Paso de Avaluo: intenta 'Calcular retroactivo' con el año dado.
+      - NO pasa a calidad: se detiene en el Resumen.
+    Devuelve el mapeo acumulado para el resumen.txt.
+    """
+    import re as _re
+    mapeo = {"editados": [], "bloqueados": [], "pasos": []}
+    visto = {}
+    for _ in range(24):
+        try:
+            cuerpo = page.locator("body").inner_text()
+        except Exception:
+            cuerpo = ""
+        if "Resumen Final" in cuerpo or "Validaciones del tr" in cuerpo:
+            break
+        n = detectar_paso(page)
+        clave = n if n is not None else cuerpo[:40]
+        visto[clave] = visto.get(clave, 0) + 1
+        if visto[clave] > 3:
+            print(f"  [auto] estancado en paso {n}; se detiene.")
+            break
+        # Avaluo: calcular retroactivo si hay desplegable de vigencia + boton.
+        hay_avaluo = ("Calcular retroactivo" in cuerpo) or ("AVALÚO RETROACTIVO" in cuerpo.upper())
+        if hay_avaluo:
+            try:
+                calcular_avaluo(page, anio_avaluo)
+            except Exception:
+                pass
+        else:
+            r = autopaso(page, semilla)
+            mapeo["editados"] += r["editados"]
+            mapeo["bloqueados"] += r["bloqueados"]
+        mapeo["pasos"].append(n)
+        continuar_wizard(page)
+        page.wait_for_timeout(1300)
+
+    # Resumen: re-validar y leer conteo.
+    try:
+        rev = page.get_by_role("button", name="Re-validar")
+        if rev.count() == 0:
+            rev = page.locator("button", has_text="validar")
+        if rev.count() > 0:
+            rev.first.click()
+            page.wait_for_timeout(2500)
+            page.wait_for_load_state("networkidle")
+    except Exception:
+        pass
+    try:
+        cuerpo = page.locator("body").inner_text()
+        def _c(etq):
+            m = _re.search(r"(\d+)\s*[\r\n]+\s*" + etq, cuerpo, _re.IGNORECASE)
+            return m.group(1) if m else None
+        err = _c("ERRORES")
+        mapeo["errores"] = err
+        print(f"  [auto] RESUMEN -> errores: {err or '?'} | warnings: {_c('WARNINGS') or '?'} "
+              f"| ok: {_c('OK') or '?'}")
+        if err == "0":
+            print("  >>> 0 ERRORES. Listo (el usuario pulsa 'Pasar borrador' / 'Pasar a calidad').")
+        elif err is not None:
+            print(f"  >>> {err} ERROR(ES): probablemente GEOMETRIA (terreno/construccion) o")
+            print("  >>> ajuste del usuario. Revisa el Resumen.")
+    except Exception:
+        pass
+    print("  (auto: NO pasa a calidad; geometria es reserva del usuario.)")
+    return mapeo
+
+
 def tramite_cancelacion(page, semilla: str = "") -> None:
     """Proceso COMPLETO de un tramite 'Cancelaciones - Fuerza Mayor' (3 pasos:
     Fuente Administrativa -> Resumen -> Borrador Resolucion).
@@ -2283,6 +2476,15 @@ def repl(page, base_url: str) -> None:
                 modo_p = partes_p[1] if len(partes_p) > 1 else "sustitucion"
                 n_p = int(partes_p[2]) if len(partes_p) > 2 and partes_p[2].isdigit() else 1
                 nuevo_propietario(page, sem_p, "100", modo_p, n_p)
+            elif cmd == "autopaso":
+                # Inspeccion dinamica del paso actual: llena editables, registra bloqueados.
+                autopaso(page, arg.strip())
+            elif cmd == "tramiteauto":
+                # Uso: tramiteauto [semilla] [anio]  -> motor auto-adaptativo hasta Resumen
+                partes_a = arg.split()
+                sem_a = partes_a[0] if partes_a else ""
+                anio_a = partes_a[1] if len(partes_a) > 1 else "2025"
+                tramite_auto(page, sem_a, anio_a)
             elif cmd == "cancelacion":
                 # Uso: cancelacion [semilla]  -> Cancelaciones - Fuerza Mayor completo
                 tramite_cancelacion(page, arg.strip())
