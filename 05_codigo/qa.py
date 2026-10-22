@@ -794,10 +794,19 @@ _APELLIDOS = ["Ramirez", "Gomez", "Lopez", "Martinez", "Rodriguez", "Gonzalez", 
               "Rios", "Cuellar", "Bedoya", "Agudelo", "Marin", "Ocampo", "Serna"]
 
 
-def _nueva_persona_unica(rnd) -> dict:
-    """Genera una persona natural unica (nombre + documento no repetidos)."""
+def _nueva_persona_unica(rnd, sexo: str = "") -> dict:
+    """Genera una persona natural unica (nombre + documento no repetidos).
+
+    sexo: '' = aleatorio; 'femenino'/'f' = fuerza mujer; 'masculino'/'m' = fuerza hombre.
+    """
+    sx = (sexo or "").strip().lower()
     for _ in range(300):
-        es_m = rnd.random() < 0.5
+        if sx.startswith("f"):
+            es_m = False
+        elif sx.startswith("m"):
+            es_m = True
+        else:
+            es_m = rnd.random() < 0.5
         n1 = rnd.choice(_NOMBRES_M if es_m else _NOMBRES_F)
         n2 = rnd.choice(_NOMBRES_M if es_m else _NOMBRES_F)
         a1 = rnd.choice(_APELLIDOS)
@@ -811,8 +820,9 @@ def _nueva_persona_unica(rnd) -> dict:
         return {"n1": n1, "n2": n2, "a1": a1, "a2": a2, "doc": doc,
                 "sexo": "Masculino" if es_m else "Femenino"}
     doc = str(rnd.randint(10_000_000, 1_299_999_999))
+    sexo_fb = "Femenino" if sx.startswith("f") else "Masculino"
     return {"n1": "Prueba", "n2": "Qa", "a1": "Test", "a2": str(doc[-3:]),
-            "doc": doc, "sexo": "Masculino"}
+            "doc": doc, "sexo": sexo_fb}
 
 
 def _select_spa(page, idx: int, etiqueta_opcion: str) -> bool:
@@ -956,7 +966,8 @@ def _llenar_interesado(page, p: dict, participacion) -> None:
 
 
 def nuevo_propietario(page, semilla: str = "", participacion: str = "100",
-                      modo: str = "sustitucion", copropietarios: int = 1) -> None:
+                      modo: str = "sustitucion", copropietarios: int = 1,
+                      sexo: str = "") -> None:
     """Paso 2 de Cambio de Propietario, con dos ramas:
 
     modo='sustitucion' (MODO_SUSTITUCION_100): ELIMINA los titulares previos y registra
@@ -973,7 +984,7 @@ def nuevo_propietario(page, semilla: str = "", participacion: str = "100",
         n = _eliminar_propietarios_existentes(page)
         print(f"  MODO SUSTITUCION: eliminados {n} propietario(s) previo(s).")
         page.wait_for_timeout(600)
-        p = _nueva_persona_unica(rnd)
+        p = _nueva_persona_unica(rnd, sexo)
         _llenar_interesado(page, p, participacion)
     else:
         total = max(1, int(copropietarios))
@@ -982,7 +993,7 @@ def nuevo_propietario(page, semilla: str = "", participacion: str = "100",
         cuotas[-1] += 100 - base * total
         print(f"  MODO COPROPIEDAD: {total} nuevos titulares, cuotas {cuotas} (suma 100).")
         for k in range(total):
-            p = _nueva_persona_unica(rnd)
+            p = _nueva_persona_unica(rnd, sexo)
             print(f"  -- Copropietario {k+1}/{total} ({cuotas[k]}%) --")
             _llenar_interesado(page, p, str(cuotas[k]))
             page.wait_for_timeout(800)
@@ -1496,7 +1507,7 @@ def tramite_cancelacion(page, semilla: str = "") -> None:
 
 
 def tramite_propietario_completo(page, semilla: str = "", modo: str = "sustitucion",
-                                copropietarios: int = 1) -> None:
+                                copropietarios: int = 1, sexo: str = "") -> None:
     """Proceso COMPLETO de un Cambio de Propietario de corrido, asumiendo que ya se esta
     dentro del wizard en el Paso 2 (Propietario):
 
@@ -1510,7 +1521,7 @@ def tramite_propietario_completo(page, semilla: str = "", modo: str = "sustituci
     """
     import re as _re
     # 1) Cambio de propietario en el Paso 2.
-    nuevo_propietario(page, semilla, "100", modo, copropietarios)
+    nuevo_propietario(page, semilla, "100", modo, copropietarios, sexo)
     page.wait_for_timeout(1000)
 
     # 2) Avanzar por el wizard hasta el Resumen.
@@ -2471,14 +2482,20 @@ def repl(page, base_url: str) -> None:
                 sem_c = partes_c[1] if len(partes_c) > 1 else ""
                 llenar_construccion(page, anio_c, sem_c)
             elif cmd == "propietario":
-                # Uso: propietario [semilla] [modo] [n]
+                # Uso: propietario [semilla] [modo] [n] [sexo]
                 #   modo: sustitucion (def) | copropiedad
                 #   n: nº de copropietarios (solo copropiedad). Ej: propietario R-0081 copropiedad 2
+                #   sexo: femenino | masculino (opcional; def. aleatorio)
                 partes_p = arg.split()
                 sem_p = partes_p[0] if partes_p else ""
                 modo_p = partes_p[1] if len(partes_p) > 1 else "sustitucion"
                 n_p = int(partes_p[2]) if len(partes_p) > 2 and partes_p[2].isdigit() else 1
-                nuevo_propietario(page, sem_p, "100", modo_p, n_p)
+                sexo_p = ""
+                for _t in partes_p[1:]:
+                    if _t.lower() in ("femenino", "f", "mujer", "masculino", "m", "hombre"):
+                        sexo_p = _t.lower()
+                        break
+                nuevo_propietario(page, sem_p, "100", modo_p, n_p, sexo_p)
             elif cmd == "autopaso":
                 # Inspeccion dinamica del paso actual: llena editables, registra bloqueados.
                 autopaso(page, arg.strip())
@@ -2506,13 +2523,19 @@ def repl(page, base_url: str) -> None:
                 anio_3f = partes_3f[1] if len(partes_3f) > 1 else "2025"
                 tramite3a_fin(page, sem_3f, anio_3f)
             elif cmd == "tramitepropietario":
-                # Uso: tramitepropietario [semilla] [modo] [n]  -> cambio de propietario
-                # + avanza hasta el Resumen y valida (NO pasa a calidad).
+                # Uso: tramitepropietario [semilla] [modo] [n] [sexo]
+                #   -> cambio de propietario + avanza hasta el Resumen y valida (NO pasa
+                #      a calidad). sexo: femenino | masculino (opcional; def. aleatorio).
                 partes_tp = arg.split()
                 sem_tp = partes_tp[0] if partes_tp else ""
                 modo_tp = partes_tp[1] if len(partes_tp) > 1 else "sustitucion"
                 n_tp = int(partes_tp[2]) if len(partes_tp) > 2 and partes_tp[2].isdigit() else 1
-                tramite_propietario_completo(page, sem_tp, modo_tp, n_tp)
+                sexo_tp = ""
+                for _t in partes_tp[1:]:
+                    if _t.lower() in ("femenino", "f", "mujer", "masculino", "m", "hombre"):
+                        sexo_tp = _t.lower()
+                        break
+                tramite_propietario_completo(page, sem_tp, modo_tp, n_tp, sexo_tp)
             elif cmd == "direccion":
                 # Uso: direccion <vpValor> <vpLetra> <vgValor> <vgLetra> <numPredio>
                 partes_dir = arg.split()
