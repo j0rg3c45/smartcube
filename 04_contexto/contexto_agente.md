@@ -591,8 +591,17 @@ Caracteristicas observadas:
 - Direccion No Estructurada ("URBANIZACION YOY VITAPARQUES LOTE 4") => estructurar.
 - Flujo casi automatico de corrido (sin pausa cartografica al ser lote). Foco: Paso 6
   Avaluo (recalcular retroactivo desde el año que indique el usuario - PREGUNTAR SIEMPRE).
-- PENDIENTE: mapear TODOS los campos editables de cada paso (el usuario indica que deja
-  editar varias cosas) y construir comando `tramite4a [semilla] [anio]`.
+- PROCESADO con el motor AUTO-ADAPTATIVO `tramiteauto R-2026-0062 2025` (21/10): proceso
+  todo lo alfanumerico de corrido (direccion estructurada, destino, fuente admin, avaluo
+  2025) y llego al Resumen con 1 ERROR, 66 OK. Error `3_ET_CF_108`: area digitada 3945 m2
+  vs poligono 3453.03 m2 (14.2% >10%) = AJUSTE CARTOGRAFICO DEL USUARIO. Propietario
+  XIUDAD SAS. NO requiere comando `tramite4a` dedicado: el motor `tramiteauto` lo cubre.
+
+> HALLAZGO RECURRENTE (para el informe): el error `3_ET_CF_108` EXACTITUD TEMATICA
+> (area digitada vs poligono difieren >10%) aparece en multiples tramites (0061, 0088,
+> 0062). La plataforma exige conciliar el area digitada del terreno con el area del
+> poligono (tolerancia 10%, tabla 109 IGAC IN-GCT-PC01-06); el analista debe ajustarlo
+> manualmente cada vez. Candidato a recomendacion (validacion/ajuste asistido de area).
 
 > MAPEO DE CAMPOS EDITABLES (ir completando conforme se recorren los pasos):
 > - Paso 1 Predio: DEJA EDITAR:

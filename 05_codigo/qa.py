@@ -1371,7 +1371,10 @@ def tramite_auto(page, semilla: str = "", anio_avaluo: str = "2025") -> dict:
     try:
         cuerpo = page.locator("body").inner_text()
         def _c(etq):
+            # Formato bloque: "N\nETIQUETA" o "ETIQUETA\nN".
             m = _re.search(r"(\d+)\s*[\r\n]+\s*" + etq, cuerpo, _re.IGNORECASE)
+            if not m:
+                m = _re.search(etq + r"\s*[\r\n]+\s*(\d+)", cuerpo, _re.IGNORECASE)
             return m.group(1) if m else None
         err = _c("ERRORES")
         mapeo["errores"] = err
