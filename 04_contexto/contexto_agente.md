@@ -604,6 +604,16 @@ el DOM del paso (estan en modales o son del propietario existente):
 > 4. Terreno: posible ajuste de area (3_ET_CF_108).
 > Es el tipo mas rico en correcciones; conviene revisarlo semi-guiado, no 100% de corrido.
 
+> ESTADO R-2026-0085 (21/10/2026, EN PROCESO - retomar mañana): propietario DUQUE MILLAN
+> LINA MARIA (CC 001110475280). En el Paso 2 se abrio 'Editar Interesado' y se corrigio
+> el Sexo (None -> Femenino). El % Participacion venia en "0E-10" (0%, hallazgo #5,
+> propietario unico) y se iba a poner en 100. PENDIENTE confirmar que se pulso 'Actualizar
+> Propietario'. FALTA aun: las 2 CONSTRUCCIONES (UC #1 y UC #2) sin geometria (usuario
+> carga shape), sin año y sin calificar (agente edita cada UC con `construccion`), y
+> posible ajuste de area del terreno. Resumen previo: 7 errores, 4 warnings, 120 OK.
+> Retomar: `entrar R-2026-0085`, confirmar propietario, cargar geometria de las 2 UC,
+> completar cada UC, re-validar.
+
 ### Tipo de trámite: Mutación 4a Clase - Revisión Avalúo (R-2026-0062)
 
 "Mutacion Integral / Mutacion 4a Clase - Revision Avaluo" (R-2026-0062, NPN
