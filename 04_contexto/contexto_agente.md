@@ -579,6 +579,31 @@ Durante la corrida: NO usar el navegador ni abrir DevTools.
 > quedar "sin valor en tabla de avaluo" segun la zona (ej. uso residencial urbano en
 > zona 00 rural). Validar si es limitacion de la tabla de avaluo o eleccion de uso.
 
+### Tipo de trámite: Rectificaciones - Errores Inscripción Catastral (R-2026-0085)
+
+Wizard de 8 pasos. CASO COMPLEJO (como R-2026-0075): el predio puede traer errores de
+origen en VARIOS modulos. En R-2026-0085 (NPN 763640100000000773022300000000, Predio
+#49851, lote ZONA 01 pero CON 2 construcciones) el motor `tramiteauto` proceso lo
+alfanumerico de pasos (120 OK) pero quedaron 7 ERRORES porque hay datos que NO estan en
+el DOM del paso (estan en modales o son del propietario existente):
+- `2_CLI_CJ_76`: Interesado #1 (propietario existente) con **sexo "None"** -> hay que
+  EDITAR el propietario existente y ponerle sexo (el motor generico no lo corrige).
+- `2_CLUC_CF_81`: **UC #1 y UC #2 con planta altura=None** -> 2 construcciones sin
+  geometria; el USUARIO debe cargar la geometria de cada UC.
+- **UC #1 y UC #2 sin año de construccion** y **UC A sin calificar** -> editar CADA UC
+  (boton edit) y completar año + calificacion (comando `construccion`).
+- (+5 errores mas relacionados).
+
+> FLUJO correcto de Rectificaciones CON construcciones:
+> 1. `tramiteauto` para el grueso alfanumerico (direccion, matricula, fuente admin, avaluo).
+> 2. Paso 2 Propietario: EDITAR el interesado existente para corregir el sexo None (y
+>    otros campos que lleguen incompletos). OJO: aqui NO se agrega nuevo propietario,
+>    se EDITA el existente.
+> 3. Paso 4 Construccion: el USUARIO carga la geometria de cada UC; el agente edita CADA
+>    UC (boton edit) con `construccion` (año, uso, calificacion, baños/habitaciones).
+> 4. Terreno: posible ajuste de area (3_ET_CF_108).
+> Es el tipo mas rico en correcciones; conviene revisarlo semi-guiado, no 100% de corrido.
+
 ### Tipo de trámite: Mutación 4a Clase - Revisión Avalúo (R-2026-0062)
 
 "Mutacion Integral / Mutacion 4a Clase - Revision Avaluo" (R-2026-0062, NPN
