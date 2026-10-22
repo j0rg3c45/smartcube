@@ -560,6 +560,31 @@ Durante la corrida: NO usar el navegador ni abrir DevTools.
 > quedar "sin valor en tabla de avaluo" segun la zona (ej. uso residencial urbano en
 > zona 00 rural). Validar si es limitacion de la tabla de avaluo o eleccion de uso.
 
+### Tipo de trámite: Mutación 4a Clase - Revisión Avalúo (R-2026-0062)
+
+"Mutacion Integral / Mutacion 4a Clase - Revision Avaluo" (R-2026-0062, NPN
+763640100000000030012000000000, Predio #14892). Wizard de 8 pasos. El FOCO es el
+AVALUO (Paso 6). Este tipo DEJA EDITAR VARIAS COSAS (no es solo lectura).
+
+Caracteristicas observadas:
+- Predio LOTE (destino "Lote Urbanizado No Construido"), ZONA 01 urbano, SIN
+  construccion. => Paso 4 se avanza vacio; destino de lote se mantiene (coherente).
+- Direccion No Estructurada ("URBANIZACION YOY VITAPARQUES LOTE 4") => estructurar.
+- Flujo casi automatico de corrido (sin pausa cartografica al ser lote). Foco: Paso 6
+  Avaluo (recalcular retroactivo desde el año que indique el usuario - PREGUNTAR SIEMPRE).
+- PENDIENTE: mapear TODOS los campos editables de cada paso (el usuario indica que deja
+  editar varias cosas) y construir comando `tramite4a [semilla] [anio]`.
+
+> MAPEO DE CAMPOS EDITABLES (ir completando conforme se recorren los pasos):
+> - Paso 1 Predio: DEJA EDITAR:
+>     * DIRECCION (se estructura con `editardireccion` - ya lo hacemos).
+>     * DESTINO ECONOMICO (se cambia con `destino` - ya lo hacemos).
+>     * (por mapear el resto: caracterizacion LADM, matricula).
+> - Paso 2 Propietario: (por mapear).
+> - Paso 3 Terreno: (por mapear).
+> - Paso 5 Fuente Administrativa: 7 desplegables estandar (ya conocidos).
+> - Paso 6 Avaluo: desplegable Vigencia + 'Calcular retroactivo' (ya conocido).
+
 ### Tipo de trámite: Mutación 3a Clase - Cambio Destino Económico (R-2026-0084)
 
 Flujo de 8 pasos. En Cambio de Destino el proceso es de CORRIDO (NO hay pausa
