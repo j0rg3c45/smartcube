@@ -652,15 +652,34 @@ def editar_direccion(page, semilla: str = "") -> None:
     except Exception:
         pass
 
-    # 1) Abrir el modal de editar si no esta abierto (busca el titulo 'Editar dirección').
+    # 1) Abrir el modal. Dos casos:
+    #    a) Ya existe una direccion -> editar (icono lapiz 'edit').
+    #    b) NO hay direccion (p. ej. Division con predios nuevos) -> pulsar
+    #       '+ Añadir Dirección' para abrir el modal 'Nueva dirección'.
+    es_nueva = False
     try:
         titulo = page.get_by_text("Editar dirección", exact=False)
-        if titulo.count() == 0:
-            # Intentar abrir con el icono de editar de la primera fila.
+        titulo_nueva = page.get_by_text("Nueva dirección", exact=False)
+        if titulo.count() == 0 and titulo_nueva.count() == 0:
             lapiz = page.get_by_text("edit", exact=True)
             if lapiz.count() > 0:
+                # Hay una direccion existente: editarla.
                 lapiz.first.click()
                 page.wait_for_timeout(800)
+            else:
+                # No hay direccion: anadir una nueva.
+                anadir = page.get_by_role("button", name="Añadir Dirección")
+                if anadir.count() == 0:
+                    anadir = page.get_by_text("Añadir Dirección", exact=False)
+                if anadir.count() > 0:
+                    anadir.first.click()
+                    page.wait_for_timeout(900)
+                    es_nueva = True
+                    print("  No habia direccion: se abrio '+ Anadir Direccion' (modal nuevo).")
+                else:
+                    print("  No se encontro ni direccion para editar ni '+ Anadir Direccion'.")
+        elif titulo_nueva.count() > 0:
+            es_nueva = True
     except Exception:
         pass
 
@@ -764,18 +783,38 @@ def editar_direccion(page, semilla: str = "") -> None:
 
     page.wait_for_timeout(500)
 
-    # 5) Pulsar 'Actualizar'.
-    boton = page.get_by_role("button", name="Actualizar")
-    if boton.count() == 0:
-        boton = page.locator("button", has_text="Actualizar")
-    if boton.count() > 0:
-        boton.first.click()
-        page.wait_for_timeout(1200)
-        page.wait_for_load_state("networkidle")
-        print(f"  Direccion estructurada ACTUALIZADA: {clase} {vp_valor}{vp_letra} "
-              f"# {vg_valor}{vg_letra} - {num_predio}, CP {cod_postal}")
-    else:
-        print("  No se encontro el boton 'Actualizar'. Revisa el modal.")
+    # 5) Pulsar el boton PRIMARIO del modal (Agregar / Actualizar).
+    #    El boton es <button class="... bg-primary ..."><span>save</span>Agregar</button>,
+    #    asi que su innerText es "saveAgregar": NO se puede anclar ^Agregar$. Se busca el
+    #    boton primario azul cuyo texto TERMINA en 'Agregar'/'Actualizar' (no 'Agregar
+    #    foto' ni 'Agregar segmento', que no son bg-primary).
+    nombres_boton = (["Agregar", "Actualizar", "Guardar"] if es_nueva
+                     else ["Actualizar", "Agregar", "Guardar"])
+    pulsado = False
+    for nb in nombres_boton:
+        # Primario azul que termina en el nombre (tolera el icono 'save' al inicio).
+        cand = page.locator("button.bg-primary").filter(
+            has_text=_re.compile(rf"{nb}\s*$"))
+        if cand.count() == 0:
+            cand = page.get_by_role("button", name=nb)
+        if cand.count() > 0:
+            try:
+                btn = cand.last  # el del modal suele ser el ultimo en el DOM
+                btn.wait_for(state="visible", timeout=4000)
+                btn.scroll_into_view_if_needed()
+                btn.click()
+                page.wait_for_timeout(1300)
+                page.wait_for_load_state("networkidle")
+                accion = "AGREGADA" if es_nueva else "ACTUALIZADA"
+                print(f"  Direccion estructurada {accion} (boton '{nb}'): {clase} "
+                      f"{vp_valor}{vp_letra} # {vg_valor}{vg_letra} - {num_predio}, CP {cod_postal}")
+                pulsado = True
+                break
+            except Exception as e:
+                print(f"  [dir] intento boton '{nb}' fallo: {type(e).__name__}")
+                continue
+    if not pulsado:
+        print("  No se encontro el boton primario para guardar la direccion. Revisa el modal.")
 
 
 # Datos de propietarios sinteticos ya usados (para NO repetir entre tramites).
@@ -1225,6 +1264,13 @@ def _valor_sintetico_para(nombre: str, tipo: str, rnd) -> str:
         return str(rnd.randint(100000, 999999))        # matricula: solo numerica
     if "npn" in n or "predial" in n:
         return ""  # NO inventar NPN en campos sueltos
+    # Placeholders de ejemplo NUMERICO (p. ej. "Ej: 12345", "Ej: 100"): el campo espera
+    # un numero aunque sea type=text. Devolver solo digitos (evita "QA 890" en matricula).
+    import re as _re_v
+    m_ej = _re_v.search(r"ej[:\.]?\s*(\d+)", n)
+    if m_ej:
+        ejemplo = m_ej.group(1)
+        return str(rnd.randint(10 ** (len(ejemplo) - 1), 10 ** len(ejemplo) - 1))
     if "anio" in n or "año" in n or "year" in n:
         return str(rnd.randint(1990, 2020))
     if "area" in n or "área" in n:
@@ -1237,8 +1283,16 @@ def _valor_sintetico_para(nombre: str, tipo: str, rnd) -> str:
         return str(rnd.randint(1, 50))
     if "observ" in n or "descrip" in n or "nota" in n:
         return "sin observacion"
-    # Texto generico corto.
-    return "QA " + str(rnd.randint(100, 999))
+    if "nombre" in n or "razon" in n or "razón" in n:
+        # Nombre coherente (no 'QA ...'): nombre + apellido reales al azar.
+        return f"{rnd.choice(_NOMBRES_M + _NOMBRES_F)} {rnd.choice(_APELLIDOS)}"
+    if "correo" in n or "email" in n or "mail" in n:
+        return f"contacto{rnd.randint(100,999)}@ejemplo.com"
+    if "tel" in n or "celular" in n or "movil" in n or "móvil" in n:
+        return f"3{rnd.randint(100000000, 199999999)}"
+    # Campo de texto NO reconocido: no inventar basura (evita 'QA ...'). Dejar vacio;
+    # si fuera obligatorio, la plataforma lo marcara y se resuelve de forma dirigida.
+    return ""
 
 
 def autopaso(page, semilla: str = "") -> dict:
@@ -1253,6 +1307,10 @@ def autopaso(page, semilla: str = "") -> dict:
     editados, bloqueados = [], []
 
     # 1) SELECTS editables: elegir primera opcion valida (no placeholder), con change.
+    #    EXCEPCION: no tocar los selects de caracterizacion LADM (Tipo de Predio,
+    #    Tipo de Derecho) ni Destino Economico: los pone el flujo dirigido con los
+    #    valores correctos (Privado/Dominio/...). El generico los pisaria con la 1a
+    #    opcion (p. ej. "Publico - Baldio" / "Derecho de Propiedad Colectiva"), mal.
     selects = page.locator("select")
     for i in range(selects.count()):
         s = selects.nth(i)
@@ -1266,6 +1324,14 @@ def autopaso(page, semilla: str = "") -> dict:
                 continue  # ya tiene valor, no lo piso
             opts = [s.locator("option").nth(j).inner_text().strip()
                     for j in range(s.locator("option").count())]
+            _joined = " ".join(opts)
+            # Saltar selects sensibles (caracterizacion / destino).
+            es_tipo_predio = ("Privado" in opts and ("Baldío" in _joined or "Baldio" in _joined))
+            es_tipo_derecho = ("Dominio" in opts and ("Usufructo" in opts or "Nuda Propiedad" in opts))
+            es_destino = ("Habitacional" in opts and "Comercial" in opts)
+            if es_tipo_predio or es_tipo_derecho or es_destino:
+                bloqueados.append(f"select#{i}(caracterizacion/destino: protegido)")
+                continue
             objetivo = None
             for t in opts:
                 tl = t.lower()
@@ -1328,7 +1394,55 @@ def autopaso(page, semilla: str = "") -> dict:
     return {"editados": editados, "bloqueados": bloqueados}
 
 
-def tramite_auto(page, semilla: str = "", anio_avaluo: str = "2025") -> dict:
+def seleccionar_predio(page, clave: str) -> bool:
+    """Selecciona un predio del panel 'LISTADO DE PREDIOS' clicando el <button> que lo
+    contiene. 'clave' puede ser el NPN (30 digitos) o el numero de predio (p. ej. 112071).
+
+    IMPORTANTE: cada predio del listado es un <button> cuyo texto incluye el NPN y
+    'Predio #<num>'. Hay que clicar el BUTTON (no el <p> interno) para que React cambie
+    el predio activo. OJO: el desplegable 'Copiar propietarios de...' del Paso 2 NO
+    cambia el predio activo; no usarlo para eso.
+    """
+    clave = (clave or "").strip()
+    if not clave:
+        print("  Uso: predio <NPN o numero de predio>")
+        return False
+    # Buscar el <button> del listado que contenga la clave en su texto.
+    botones = page.locator("button", has_text=clave)
+    # Filtrar a los que parezcan tarjeta de predio (contienen 'Predio #' o un NPN largo).
+    objetivo = None
+    for i in range(botones.count()):
+        try:
+            txt = botones.nth(i).inner_text()
+        except Exception:
+            continue
+        if "Predio #" in txt or _re_npn_match(txt):
+            objetivo = botones.nth(i)
+            break
+    if objetivo is None and botones.count() > 0:
+        objetivo = botones.first
+    if objetivo is None:
+        print(f"  No se encontro el predio '{clave}' en el listado.")
+        return False
+    try:
+        objetivo.scroll_into_view_if_needed()
+        objetivo.click()
+        page.wait_for_timeout(1200)
+        page.wait_for_load_state("networkidle")
+        print(f"  Predio seleccionado: {clave}")
+        return True
+    except Exception as e:
+        print(f"  No se pudo seleccionar el predio: {type(e).__name__}")
+        return False
+
+
+def _re_npn_match(txt: str) -> bool:
+    import re as _r
+    return _r.search(r"\d{25,30}", txt or "") is not None
+
+
+def tramite_auto(page, semilla: str = "", anio_avaluo: str = "2025",
+                 destino: str = "") -> dict:
     """Motor AUTO-ADAPTATIVO: recorre el wizard de corrido hasta el Resumen aplicando
     inspeccion dinamica (autopaso) en cada paso. Reglas:
       - Llena todo lo alfanumerico editable (datos sinteticos coherentes).
@@ -1345,14 +1459,28 @@ def tramite_auto(page, semilla: str = "", anio_avaluo: str = "2025") -> dict:
             cuerpo = page.locator("body").inner_text()
         except Exception:
             cuerpo = ""
-        if "Resumen Final" in cuerpo or "Validaciones del tr" in cuerpo:
+        # Detectar el Resumen por textos que SOLO existen alli. OJO: NO usar
+        # "Resumen Final" a secas, porque el BOTON del Paso 4 dice "Siguiente: Resumen
+        # Final" y haria salir del bucle estando aun en Construccion.
+        en_resumen = ("Resumen Final de la Mutaci" in cuerpo
+                      or "Validaciones del tr" in cuerpo
+                      or "Revise los cambios aplicados" in cuerpo)
+        if en_resumen:
             break
         n = detectar_paso(page)
         clave = n if n is not None else cuerpo[:40]
         visto[clave] = visto.get(clave, 0) + 1
-        if visto[clave] > 3:
+        if visto[clave] > 4:
             print(f"  [auto] estancado en paso {n}; se detiene.")
             break
+        # Paso 4 (Construccion) de un LOTE sin construccion: no hay nada que cargar;
+        # avanzar directo con 'Siguiente: Resumen Final'. La geometria de construccion es
+        # reserva del usuario, pero si no hay UC el lote pasa al Resumen sin cargar nada.
+        if n == 4 and "Sin unidades de construcci" in cuerpo:
+            print("  [auto] Paso 4 lote sin construccion: avanzar a Resumen Final.")
+            continuar_wizard(page)
+            page.wait_for_timeout(1500)
+            continue
         # Avaluo: calcular retroactivo si hay desplegable de vigencia + boton.
         hay_avaluo = ("Calcular retroactivo" in cuerpo) or ("AVALÚO RETROACTIVO" in cuerpo.upper())
         if hay_avaluo:
@@ -1361,7 +1489,66 @@ def tramite_auto(page, semilla: str = "", anio_avaluo: str = "2025") -> dict:
             except Exception:
                 pass
         else:
-            r = autopaso(page, semilla)
+            # Paso 1 (Predio): llenado DIRIGIDO de los campos sensibles, que el
+            # autopaso generico no debe tocar ni sabe poner bien:
+            #   a) Caracterizacion LADM -> Privado / Dominio (no la 1a opcion = Baldio).
+            #   b) Direccion -> si no hay, agregar una estructurada UNICA (modal aparte).
+            # El resto (matricula numerica, etc.) lo pone el autopaso.
+            if n == 1:
+                try:
+                    caracterizacion_ladm(page, "Privado", "Dominio")
+                except Exception as e:
+                    print(f"  [auto] caracterizacion: {type(e).__name__}")
+                # Destino Economico coherente. Si se indico uno, usarlo. Si NO, y el
+                # predio no tendra construccion (lote de Division/Segregacion), usar
+                # 'Lote Urbanizado No Construido' para no disparar CUSTOM_DESTINO_REQUIERE_UC
+                # (destino Habitacional/Comercial/Industrial EXIGE una unidad de construccion).
+                destino_obj = destino or "Lote Urbanizado No Construido"
+                try:
+                    cambiar_destino(page, destino_obj)
+                except Exception as e:
+                    print(f"  [auto] destino: {type(e).__name__}")
+                if "Sin direcciones registradas" in cuerpo:
+                    try:
+                        print("  [auto] Paso 1 sin direccion: se agrega una estructurada.")
+                        editar_direccion(page, semilla)
+                        page.wait_for_timeout(900)
+                    except Exception as e:
+                        print(f"  [auto] no se pudo agregar direccion: {type(e).__name__}")
+            # Paso 2 (Propietario): este tipo usa el formulario 'Datos del Nuevo
+            # Interesado' + boton 'Agregar Propietario', que el autopaso generico NO sabe
+            # manejar. Si el predio no tiene propietario, usar nuevo_propietario (datos
+            # reales unicos por semilla). NO el generico.
+            paso2_propietario = (n == 2) or ("Datos del Nuevo Interesado" in cuerpo
+                                             and "Agregar Propietario" in cuerpo)
+            falta_prop = ("Sin propietarios registrados" in cuerpo
+                          or "no tiene propietario diligenciado" in cuerpo
+                          or "Falta diligenciar el propietario" in cuerpo)
+            # Paso 5 (Fuente Administrativa): los 7 desplegables cargan sus opciones de
+            # forma ASINCRONA; el autopaso generico llega antes y los deja vacios. Usar
+            # fuente_administrativa (espera a que haya opciones). Patron ya conocido.
+            paso5_fuente = (n == 5) or ("Fuente Administrativa" in cuerpo
+                                        and "Naturaleza Jur" in cuerpo
+                                        and "Estado de Disponibilidad" in cuerpo)
+            if paso2_propietario and falta_prop:
+                try:
+                    print("  [auto] Paso 2: agregando propietario (datos reales unicos).")
+                    nuevo_propietario(page, semilla, "100", "sustitucion", 1)
+                    page.wait_for_timeout(900)
+                except Exception as e:
+                    print(f"  [auto] no se pudo agregar propietario: {type(e).__name__}")
+                # No correr el generico en este paso (evita pisar selects del formulario).
+                r = {"editados": [], "bloqueados": []}
+            elif paso5_fuente:
+                try:
+                    print("  [auto] Paso 5: llenando Fuente Administrativa (espera async).")
+                    fuente_administrativa(page, semilla)
+                    page.wait_for_timeout(600)
+                except Exception as e:
+                    print(f"  [auto] fuente administrativa: {type(e).__name__}")
+                r = {"editados": [], "bloqueados": []}
+            else:
+                r = autopaso(page, semilla)
             mapeo["editados"] += r["editados"]
             mapeo["bloqueados"] += r["bloqueados"]
         mapeo["pasos"].append(n)
@@ -2215,7 +2402,9 @@ def continuar_wizard(page) -> None:
     """Pulsa el boton de avanzar del wizard. El nombre cambia entre pasos:
     'Continuar' (paso 1) o 'Siguiente Paso' (pasos siguientes)."""
     boton = None
-    for nombre in ("Siguiente Paso", "Continuar"):
+    # El nombre del boton cambia por paso: 'Continuar' (1), 'Siguiente Paso' (2-4),
+    # 'Siguiente: Resumen Final' (paso 4 Construccion -> Resumen), 'Pasar borrador...'.
+    for nombre in ("Siguiente: Resumen Final", "Siguiente Paso", "Continuar"):
         cand = page.get_by_role("button", name=nombre)
         if cand.count() > 0:
             boton = cand
@@ -2226,7 +2415,7 @@ def continuar_wizard(page) -> None:
         if boton.count() == 0:
             boton = page.locator("button", has_text="Continuar")
     if boton.count() == 0:
-        print("  No se encontro el boton de avanzar (Continuar / Siguiente Paso).")
+        print("  No se encontro el boton de avanzar (Continuar / Siguiente Paso / Resumen).")
         return
     boton.first.click()
     page.wait_for_load_state("networkidle")
@@ -2420,6 +2609,13 @@ def repl(page, base_url: str) -> None:
                     print("  Uso: entrar <numero de radicado>")
                 else:
                     entrar_radicado(page, base_url, arg)
+            elif cmd == "predio":
+                # Uso: predio <NPN o numero de predio> -> selecciona la tarjeta del
+                # LISTADO DE PREDIOS (clica el <button>, no el desplegable de copiar).
+                if not arg:
+                    print("  Uso: predio <NPN o numero de predio>  (p. ej. predio 112071)")
+                else:
+                    seleccionar_predio(page, arg)
             elif cmd == "siguiente":
                 siguiente_radicado(page, base_url)
             elif cmd == "iniciar":
@@ -2500,11 +2696,14 @@ def repl(page, base_url: str) -> None:
                 # Inspeccion dinamica del paso actual: llena editables, registra bloqueados.
                 autopaso(page, arg.strip())
             elif cmd == "tramiteauto":
-                # Uso: tramiteauto [semilla] [anio]  -> motor auto-adaptativo hasta Resumen
+                # Uso: tramiteauto [semilla] [anio] [destino...]
+                #   -> motor auto-adaptativo hasta Resumen. 'destino' opcional (varias
+                #      palabras); si se omite, usa 'Lote Urbanizado No Construido' (lote).
                 partes_a = arg.split()
                 sem_a = partes_a[0] if partes_a else ""
                 anio_a = partes_a[1] if len(partes_a) > 1 else "2025"
-                tramite_auto(page, sem_a, anio_a)
+                destino_a = " ".join(partes_a[2:]) if len(partes_a) > 2 else ""
+                tramite_auto(page, sem_a, anio_a, destino_a)
             elif cmd == "cancelacion":
                 # Uso: cancelacion [semilla]  -> Cancelaciones - Fuerza Mayor completo
                 tramite_cancelacion(page, arg.strip())
