@@ -1441,6 +1441,205 @@ def _re_npn_match(txt: str) -> bool:
     return _r.search(r"\d{25,30}", txt or "") is not None
 
 
+def asignar_npn_cambio(page, radicado: str = "", modo: str = "", npn_base: str = "",
+                       base_url: str = "") -> bool:
+    """Asignacion de NPN para un CAMBIO DE NPN (Rectificaciones - Cambio Numero Predial).
+
+    A diferencia de la Division, aqui NO se crean predios nuevos: se RENUMERA el predio
+    existente (panel 'Renumeracion del predio', con el NPN 'Actual'). Pasos:
+      0. SELECCIONAR el tramite en 'Tramites por numerar' (clic en su tarjeta) para no
+         perder la sincronia. Es LO MAS IMPORTANTE: sin esto el panel queda vacio.
+      1. Preguntar al usuario el modo: 'auto' (Generar automatico) o 'manual' (elegir un
+         NPN del listado 'Predios de la manzana' con 'usar como base').
+      2. Validar traslapes (banner verde 'Sin traslapes').
+      3. Confirmar (CRITICO: lo confirma el usuario).
+      4. Crear predios / materializar (CRITICO: lo confirma el usuario).
+
+    'radicado' es el R-2026-00XX sobre el que se trabaja (obligatorio para la sincronia).
+    Devuelve True si quedo materializado.
+    """
+    import re as _re
+    # 0) Seleccionar el tramite en el panel 'Tramites por numerar'. Sin esto el panel
+    #    derecho queda en "Selecciona un tramite..." y todo lo demas falla.
+    if not radicado:
+        try:
+            radicado = input("  Radicado a numerar (R-2026-00XX): ").strip()
+        except Exception:
+            radicado = ""
+    if not radicado:
+        print("  [cambionpn] Falta el radicado; no se puede mantener la sincronia.")
+        return False
+    # 0a) NAVEGAR a la pantalla de Asignacion de NPN por URL directa (mas fiable que
+    #     clicar el menu). Ruta: /gestion-predial/asignacion-npn
+    cuerpo0 = page.locator("body").inner_text()
+    if "Trámites por numerar" not in cuerpo0 and "Tramites por numerar" not in cuerpo0:
+        try:
+            print("  Navegando a /gestion-predial/asignacion-npn...")
+            destino = (base_url.rstrip("/") + "/gestion-predial/asignacion-npn"
+                       if base_url else "/gestion-predial/asignacion-npn")
+            page.goto(destino, wait_until="networkidle")
+            page.wait_for_timeout(1200)
+        except Exception as e:
+            print(f"  [cambionpn] no se pudo navegar a Asignacion de NPN: {type(e).__name__}")
+            return False
+    # Clicar la tarjeta del radicado en 'Tramites por numerar'. La tarjeta es:
+    #   <li><button ...><div>R-2026-00XX</div><div>tipo</div></button></li>
+    # Buscar el <div> con el texto EXACTO del radicado y clicar su <button> ancestro.
+    div_rad = page.locator("div", has_text=_re.compile(rf"^\s*{_re.escape(radicado)}\s*$"))
+    clicado = False
+    if div_rad.count() > 0:
+        try:
+            # Subir al button contenedor de la tarjeta.
+            boton_tarjeta = div_rad.first.locator(
+                "xpath=ancestor::button[1]")
+            if boton_tarjeta.count() > 0:
+                boton_tarjeta.first.click()
+            else:
+                div_rad.first.click()
+            clicado = True
+        except Exception as e:
+            print(f"  [cambionpn] clic por div fallo: {type(e).__name__}")
+    if not clicado:
+        tarjeta = page.get_by_role("button", name=_re.compile(_re.escape(radicado)))
+        if tarjeta.count() > 0:
+            try:
+                tarjeta.first.click()
+                clicado = True
+            except Exception as e:
+                print(f"  [cambionpn] clic por rol fallo: {type(e).__name__}")
+    if not clicado:
+        print(f"  [cambionpn] No se encontro '{radicado}' en 'Tramites por numerar'.")
+        print("  Verifica que la geometria ya este cargada (si no, no aparece).")
+        return False
+    page.wait_for_timeout(1500)
+    page.wait_for_load_state("networkidle")
+    cuerpo_v = page.locator("body").inner_text()
+    if "Renumeraci" not in cuerpo_v and "Renumeración" not in cuerpo_v \
+       and "Predios nuevos" not in cuerpo_v:
+        print("  [cambionpn] El panel de numeracion no aparecio tras el clic. Revisa con 'cap'.")
+        return False
+    print(f"  Tramite seleccionado para numerar: {radicado}")
+
+    # 1) Modo. Si no se paso por argumento, preguntar en consola.
+    modo = (modo or "").strip().lower()
+    if modo not in ("auto", "automatico", "manual"):
+        try:
+            resp = input("  Modo de asignacion de NPN -> [A]utomatico / [M]anual "
+                         "del listado: ").strip().lower()
+        except Exception:
+            resp = "a"
+        modo = "manual" if resp.startswith("m") else "auto"
+    print(f"  Modo elegido: {modo}")
+
+    def _leer_npn_nuevo() -> str:
+        """Devuelve el NPN nuevo (30 digitos) si ya esta asignado en el input; '' si no."""
+        try:
+            for i in range(page.locator("input").count()):
+                val = (page.locator("input").nth(i).input_value() or "").strip()
+                if _re.fullmatch(r"\d{30}", val):
+                    return val
+        except Exception:
+            pass
+        return ""
+
+    # 1a) Si el NPN nuevo YA esta asignado (p. ej. un intento previo), NO regenerar:
+    #     saltar directo a confirmar/materializar. Evita duplicar o re-numerar.
+    npn_nuevo = _leer_npn_nuevo()
+    if npn_nuevo:
+        print(f"  NPN nuevo YA asignado: {npn_nuevo} (no se regenera).")
+    else:
+        if modo == "manual":
+            if not npn_base:
+                try:
+                    npn_base = input("  NPN (o numero de terreno) a usar como base: ").strip()
+                except Exception:
+                    npn_base = ""
+            if not npn_base:
+                print("  [cambionpn] No se indico NPN base; se cancela el modo manual.")
+                return False
+            filas = page.locator("tr", has_text=npn_base)
+            if filas.count() == 0:
+                print(f"  [cambionpn] No se encontro la fila con '{npn_base}'.")
+                return False
+            try:
+                filas.first.get_by_text("usar como base", exact=False).click()
+                page.wait_for_timeout(1200)
+                print(f"  NPN base aplicado: {npn_base}")
+            except Exception as e:
+                print(f"  [cambionpn] no se pudo aplicar 'usar como base': {type(e).__name__}")
+                return False
+        else:
+            # Automatico: pulsar 'Generar automatico' UNA sola vez.
+            b = page.get_by_role("button", name="Generar automático")
+            if b.count() == 0:
+                b = page.locator("button", has_text="Generar")
+            if b.count() == 0:
+                print("  [cambionpn] No se encontro 'Generar automatico'.")
+                return False
+            b.first.click()
+            page.wait_for_timeout(2500)
+            page.wait_for_load_state("networkidle")
+        # Releer el NPN tras generar/aplicar base.
+        npn_nuevo = _leer_npn_nuevo()
+
+    # 1b) VALIDAR que el NPN nuevo quedo asignado (no '(sin asignar)').
+    cuerpo = page.locator("body").inner_text()
+    if not npn_nuevo or "sin asignar" in cuerpo.lower():
+        print("  [cambionpn] El NPN nuevo NO quedo asignado (sigue 'sin asignar'). Se detiene.")
+        print("  Revisa con 'cap'; puede faltar geometria o recargar.")
+        return False
+    print(f"  NPN nuevo asignado: {npn_nuevo}")
+
+    # 2) Validar traslapes. Si hay, es geometria del usuario -> detener.
+    if "Traslapes detectados" in cuerpo:
+        print("  [cambionpn] HAY TRASLAPES: los resuelve el usuario (geometria). Tras")
+        print("  corregir y recargar, volver a ejecutar el comando.")
+        return False
+    print("  Sin traslapes detectados.")
+
+    # 3) CONFIRMAR / materializar (CRITICO). En un Cambio de NPN el boton 'Confirmar'
+    #    (borde verde esmeralda, title='Confirmar la numeracion') es el que MATERIALIZA;
+    #    NO hay un boton separado 'Crear predios' (eso es solo en la Division). El codigo
+    #    PIDE la validacion al usuario antes de pulsarlo.
+    estado_txt = ""
+    try:
+        estado_txt = page.locator("body").inner_text()
+    except Exception:
+        pass
+    ya_materializado = "materializ" in estado_txt.lower() or \
+        page.get_by_role("button", name=_re.compile("Deshacer")).count() > 0
+    if ya_materializado:
+        print("  El predio ya esta materializado (no se vuelve a confirmar).")
+    else:
+        if not confirmar("CONFIRMAR / materializar la renumeracion del NPN (accion "
+                         "critica, el predio queda renumerado)"):
+            print("  [cambionpn] 'Confirmar' cancelado por el usuario.")
+            return False
+        bc = page.get_by_role("button", name="Confirmar")
+        if bc.count() == 0:
+            print("  [cambionpn] 'Confirmar' no disponible. Revisa con 'cap'.")
+            return False
+        bc.first.click()
+        page.wait_for_timeout(2500)
+        page.wait_for_load_state("networkidle")
+        print("  'Confirmar' pulsado. NPN renumerado/materializado.")
+
+    # 5) PASAR AL TRAMITE EN CURSO: entrar al wizard del radicado para diligenciar.
+    print(f"  Pasando al tramite en curso: {radicado} (entrando al wizard)...")
+    try:
+        entrar_radicado(page, base_url, radicado)
+        page.wait_for_timeout(1200)
+        cuerpo_w = page.locator("body").inner_text()
+        if "Sin predios" in cuerpo_w:
+            print("  AVISO: el wizard muestra 'Sin predios'. Falta vincular el predio con")
+            print("  'usar como base' en Asignacion de NPN antes de diligenciar.")
+        else:
+            print("  Wizard abierto. Listo para 'tramiteauto' (diligenciar el tramite).")
+    except Exception as e:
+        print(f"  [cambionpn] no se pudo entrar al wizard: {type(e).__name__}. Entra con 'entrar {radicado}'.")
+    return True
+
+
 def tramite_auto(page, semilla: str = "", anio_avaluo: str = "2025",
                  destino: str = "") -> dict:
     """Motor AUTO-ADAPTATIVO: recorre el wizard de corrido hasta el Resumen aplicando
@@ -2616,6 +2815,17 @@ def repl(page, base_url: str) -> None:
                     print("  Uso: predio <NPN o numero de predio>  (p. ej. predio 112071)")
                 else:
                     seleccionar_predio(page, arg)
+            elif cmd == "cambionpn":
+                # Uso: cambionpn <radicado> [auto|manual] [npn_base]
+                #   Asignacion de NPN para Cambio de NPN (renumeracion del predio).
+                #   SELECCIONA primero el tramite (sincronia), PREGUNTA el modo si no se
+                #   indica, y pide confirmacion en las acciones criticas (Confirmar /
+                #   Crear predios). NO pasa a calidad.
+                partes_cn = arg.split()
+                rad_cn = partes_cn[0] if partes_cn else ""
+                modo_cn = partes_cn[1] if len(partes_cn) > 1 else ""
+                base_cn = partes_cn[2] if len(partes_cn) > 2 else ""
+                asignar_npn_cambio(page, rad_cn, modo_cn, base_cn, base_url)
             elif cmd == "siguiente":
                 siguiente_radicado(page, base_url)
             elif cmd == "iniciar":
