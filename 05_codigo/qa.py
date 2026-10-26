@@ -781,6 +781,34 @@ def editar_direccion(page, semilla: str = "") -> None:
     fill_ph("Ej: 42", num_predio, "Numero del predio")
     fill_ph("6 dígitos", cod_postal, "Codigo postal")
 
+    # IMPORTANTE: en una direccion ESTRUCTURADA el campo "Nombre del predio" DEBE ir
+    # VACIO (lo componen las variables de via). La UI lo arma solo (p. ej. "Carrera 10
+    # 15 48") pero la validacion 3_ET_CF_112 lo rechaza. Hay que vaciarlo antes de guardar.
+    try:
+        nombre_input = None
+        # El input suele estar bajo un label que contiene "Nombre del predio".
+        labels = page.locator("label", has_text=_re.compile("Nombre del predio", _re.I))
+        if labels.count() > 0:
+            # input hermano/descendiente del contenedor del label.
+            cont = labels.first.locator("xpath=following::input[1]")
+            if cont.count() > 0:
+                nombre_input = cont.first
+        if nombre_input is None:
+            # Fallback: input cuyo valor contenga la clase de via (p. ej. "Carrera").
+            for i in range(page.locator("input").count()):
+                v = (page.locator("input").nth(i).input_value() or "")
+                if clase.lower() in v.lower() and any(ch.isdigit() for ch in v):
+                    nombre_input = page.locator("input").nth(i)
+                    break
+        if nombre_input is not None:
+            nombre_input.fill("")
+            nombre_input.evaluate(
+                "el => { el.dispatchEvent(new Event('input',{bubbles:true}));"
+                " el.dispatchEvent(new Event('change',{bubbles:true})); }")
+            print("  Nombre del predio = '' (vaciado: en Estructurada debe ir vacio).")
+    except Exception as e:
+        print(f"  [dir] no se pudo vaciar 'Nombre del predio': {type(e).__name__}")
+
     page.wait_for_timeout(500)
 
     # 5) Pulsar el boton PRIMARIO del modal (Agregar / Actualizar).
@@ -1443,10 +1471,16 @@ def _re_npn_match(txt: str) -> bool:
 
 def asignar_npn_cambio(page, radicado: str = "", modo: str = "", npn_base: str = "",
                        base_url: str = "") -> bool:
-    """Asignacion de NPN para un CAMBIO DE NPN (Rectificaciones - Cambio Numero Predial).
+    """Asignacion de NPN UNIFICADA (un solo flujo para ambas variantes). Comando REPL:
+    `asignarnpn <radicado>` (alias `cambionpn`).
 
-    A diferencia de la Division, aqui NO se crean predios nuevos: se RENUMERA el predio
-    existente (panel 'Renumeracion del predio', con el NPN 'Actual'). Pasos:
+    Detecta la variante y actua:
+      - CAMBIO DE NPN (Rectificaciones): panel 'Renumeracion del predio'; se RENUMERA el
+        predio existente; solo el boton 'Confirmar' materializa.
+      - DIVISION / SEGREGACION (Mutacion 2a): panel 'Predios nuevos'; se CREAN predios
+        nuevos; 'Confirmar' y luego 'Crear predios' materializan.
+
+    Pasos comunes:
       0. SELECCIONAR el tramite en 'Tramites por numerar' (clic en su tarjeta) para no
          perder la sincronia. Es LO MAS IMPORTANTE: sin esto el panel queda vacio.
       1. Preguntar al usuario el modo: 'auto' (Generar automatico) o 'manual' (elegir un
@@ -1519,6 +1553,17 @@ def asignar_npn_cambio(page, radicado: str = "", modo: str = "", npn_base: str =
         print("  [cambionpn] El panel de numeracion no aparecio tras el clic. Revisa con 'cap'.")
         return False
     print(f"  Tramite seleccionado para numerar: {radicado}")
+
+    # 0b) DETECTAR la variante de Asignacion de NPN (un solo flujo sirve para ambas):
+    #     - 'Renumeracion del predio' -> CAMBIO DE NPN (solo 'Confirmar' materializa).
+    #     - 'Predios nuevos'          -> DIVISION / SEGREGACION ('Confirmar' + 'Crear predios').
+    cuerpo_tipo = page.locator("body").inner_text()
+    if "Renumeraci" in cuerpo_tipo or "Renumeración" in cuerpo_tipo:
+        print("  Variante detectada: CAMBIO DE NPN (renumeracion de 1 predio).")
+    elif "Predios nuevos" in cuerpo_tipo:
+        print("  Variante detectada: DIVISION / SEGREGACION (predios nuevos).")
+    else:
+        print("  Variante no reconocida con claridad; se continua de forma generica.")
 
     # 1) Modo. Si no se paso por argumento, preguntar en consola.
     modo = (modo or "").strip().lower()
@@ -1597,32 +1642,51 @@ def asignar_npn_cambio(page, radicado: str = "", modo: str = "", npn_base: str =
         return False
     print("  Sin traslapes detectados.")
 
-    # 3) CONFIRMAR / materializar (CRITICO). En un Cambio de NPN el boton 'Confirmar'
-    #    (borde verde esmeralda, title='Confirmar la numeracion') es el que MATERIALIZA;
-    #    NO hay un boton separado 'Crear predios' (eso es solo en la Division). El codigo
-    #    PIDE la validacion al usuario antes de pulsarlo.
-    estado_txt = ""
-    try:
-        estado_txt = page.locator("body").inner_text()
-    except Exception:
-        pass
+    # 3) CONFIRMAR / materializar (CRITICO). Dos variantes:
+    #    - CAMBIO DE NPN (panel 'Renumeracion'): solo 'Confirmar' materializa.
+    #    - DIVISION/SEGREGACION (panel 'Predios nuevos'): 'Confirmar' -> luego aparece
+    #      'Crear predios' (verde) que materializa.
+    #    El codigo PIDE validacion al usuario antes de cada accion critica.
+    estado_txt = page.locator("body").inner_text()
+    es_division = "Predios nuevos" in estado_txt
     ya_materializado = "materializ" in estado_txt.lower() or \
         page.get_by_role("button", name=_re.compile("Deshacer")).count() > 0
     if ya_materializado:
         print("  El predio ya esta materializado (no se vuelve a confirmar).")
     else:
-        if not confirmar("CONFIRMAR / materializar la renumeracion del NPN (accion "
-                         "critica, el predio queda renumerado)"):
-            print("  [cambionpn] 'Confirmar' cancelado por el usuario.")
-            return False
-        bc = page.get_by_role("button", name="Confirmar")
-        if bc.count() == 0:
-            print("  [cambionpn] 'Confirmar' no disponible. Revisa con 'cap'.")
-            return False
-        bc.first.click()
-        page.wait_for_timeout(2500)
-        page.wait_for_load_state("networkidle")
-        print("  'Confirmar' pulsado. NPN renumerado/materializado.")
+        # 3a) Confirmar (si aun no esta en estado confirmado / no aparece 'Crear predios').
+        hay_crear = page.get_by_role("button", name="Crear predios").count() > 0
+        if not hay_crear:
+            if not confirmar("CONFIRMAR la numeracion del NPN (accion critica)"):
+                print("  [cambionpn] 'Confirmar' cancelado por el usuario.")
+                return False
+            bc = page.get_by_role("button", name="Confirmar")
+            if bc.count() == 0:
+                print("  [cambionpn] 'Confirmar' no disponible. Revisa con 'cap'.")
+                return False
+            bc.first.click()
+            page.wait_for_timeout(2500)
+            page.wait_for_load_state("networkidle")
+            print("  'Confirmar' pulsado.")
+        # 3b) Si es Division/Segregacion, aparece 'Crear predios' -> materializar.
+        bp = page.get_by_role("button", name="Crear predios")
+        for _ in range(6):
+            if bp.count() > 0:
+                break
+            page.wait_for_timeout(500)
+            bp = page.get_by_role("button", name="Crear predios")
+        if bp.count() > 0:
+            if not confirmar("CREAR PREDIOS / materializar (accion critica e irreversible "
+                             "salvo 'Deshacer')"):
+                print("  [cambionpn] 'Crear predios' cancelado por el usuario.")
+                return False
+            bp.first.click()
+            page.wait_for_timeout(2500)
+            page.wait_for_load_state("networkidle")
+            print("  'Crear predios' pulsado. Predios creados/materializados.")
+        else:
+            # Cambio de NPN: 'Confirmar' ya materializo; no hay 'Crear predios'.
+            print("  (No hay 'Crear predios': Cambio de NPN materializado con 'Confirmar'.)")
 
     # 5) PASAR AL TRAMITE EN CURSO: entrar al wizard del radicado para diligenciar.
     print(f"  Pasando al tramite en curso: {radicado} (entrando al wizard)...")
@@ -2815,12 +2879,15 @@ def repl(page, base_url: str) -> None:
                     print("  Uso: predio <NPN o numero de predio>  (p. ej. predio 112071)")
                 else:
                     seleccionar_predio(page, arg)
-            elif cmd == "cambionpn":
-                # Uso: cambionpn <radicado> [auto|manual] [npn_base]
-                #   Asignacion de NPN para Cambio de NPN (renumeracion del predio).
+            elif cmd in ("asignarnpn", "cambionpn"):
+                # Uso: asignarnpn <radicado> [auto|manual] [npn_base]
+                #   (alias: cambionpn). UN SOLO flujo para la Asignacion de NPN que
+                #   sirve para AMBOS tipos: detecta la variante y actua en consecuencia:
+                #     - CAMBIO DE NPN (panel 'Renumeracion'): solo 'Confirmar' materializa.
+                #     - DIVISION/SEGREGACION (panel 'Predios nuevos'): 'Confirmar' +
+                #       'Crear predios'.
                 #   SELECCIONA primero el tramite (sincronia), PREGUNTA el modo si no se
-                #   indica, y pide confirmacion en las acciones criticas (Confirmar /
-                #   Crear predios). NO pasa a calidad.
+                #   indica, y pide confirmacion en las acciones criticas. NO pasa a calidad.
                 partes_cn = arg.split()
                 rad_cn = partes_cn[0] if partes_cn else ""
                 modo_cn = partes_cn[1] if len(partes_cn) > 1 else ""
