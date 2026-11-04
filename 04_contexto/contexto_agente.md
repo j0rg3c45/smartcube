@@ -366,6 +366,11 @@ en este proyecto. Mantener solo a título informativo.
 | 26 | R-2026-0089 (y recurrente) | Dirección Estructurada / Nombre del predio (3_ET_CF_112) | CONTRADICCIÓN UI vs validación: al estructurar la dirección, la interfaz autocompleta el campo "Nombre del predio" (p. ej. "Carrera 10 15 48"), pero la validación 3_ET_CF_112 exige que en una Estructurada ese campo vaya VACÍO (el texto lo componen las variables de vía). La UI arma algo que su propia validación rechaza. Ya visto antes como dato de origen en R-2026-0075 (#12); aquí confirmado como comportamiento de la UI. | Captura 20261026_101432. Anexo D. |
 | 27 | R-2026-0067 / 0089 | Asignación de NPN / vinculación "usar como base" | Tras materializar la Asignación de NPN (División/Segregación), el predio NO pasa automáticamente al wizard; hay que vincularlo con la acción "usar como base". Si se omite, el wizard muestra "Sin predios" sin un mensaje que oriente al analista. Afecta usabilidad. | Capturas 0067/0089. Anexo D. |
 | 28 | R-2026-0089 | Estabilidad de la plataforma | Durante el procesamiento de R-2026-0089 (Segregación) se presentó una CONTINGENCIA/CAÍDA de la plataforma que obligó a dejar el trámite pendiente. Revisar estabilidad bajo uso sostenido. | Reportado por el usuario. Anexo D. |
+| 29 | R-2026-0239 | Paso 7 / Avalúo de UC (CUSTOM_AVALUO_COMPLETO) | Las UC B y UC C quedan "sin valor en tabla (zona 00, agro True, uso 86, puntaje 40)". La tabla de valores de construcción no cubre la combinación zona/uso/puntaje que la propia calificación produce, y el error bloquea el trámite. Además salen 3 warnings `2_CLUC_CF_84` (UC sin avalúo_caracterización) y el modal de UC no tiene un campo para diligenciarlo. | Captura 20261104_104327_resumen_0239_final. |
+| 30 | (general, 04/11/2026) | Interfaz / Tour de novedades (MULTICAT) | El nuevo tour de novedades ("Paso 1 de 4", botones Saltar/Siguiente) pone un overlay `div.fixed.inset-0 z-[210]` que intercepta TODOS los clics de la página hasta que se cierra. Reaparece al navegar y bloquea la operación (y la automatización) sin aviso. | Mapeado en la sesión 0239; se resolvió con `cerrar_tour`. |
+| 31 | R-2026-0237 | Asignación de NPN / cola "Trámites por numerar" | El usuario cargó la geometría (Mut 2a División Material), pero el radicado NO aparece en "Trámites por numerar" (la lista empieza en 0236) y el wizard sigue mostrando "Falta la Asignación de NPN". El responsable confirmó que es un problema de la plataforma y el trámite queda bloqueado. También se observó que 0089 sigue en la cola aunque ya se había numerado. | Captura 20261104_102139_asignarnpn_0237. Confirmado con el responsable. |
+| 32 | R-2026-0238 | Paso 5 / Fuente Administrativa ("Agregar fuente") | Al pulsar "Agregar fuente" se crea una SEGUNDA fuente vacía y "Siguiente Paso" deja de avanzar SIN mostrar mensaje de campos faltantes. Hay que eliminarla con "Eliminar" para continuar. Además las pestañas del wizard están deshabilitadas para saltar de paso, así que solo se navega con Anterior/Siguiente. | Sesión 04/11/2026 (automatización). |
+| 33 | R-2026-0238 | Paso 2 / % de participación | En la Mutación 3a el propietario (URBANIZADORA CIUDAD DE DIOS SAS) figura al 0% de participación y es de SOLO LECTURA: no se puede corregir a 100% y la validación no lo reporta. Dato inconsistente que pasa al acto administrativo. | Resumen de cambios del Paso 7 (Dominio 0%). |
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
@@ -964,6 +969,47 @@ Transversal, Circular.
 
 ## 10. Estado de la sesión (dónde vamos)
 
+**Sesión 04/11/2026 — lote nuevo 0237-0240, MODO AUTÓNOMO.**
+
+Directiva vigente del usuario (AUTONOMÍA ABSOLUTA): el agente ejecuta él mismo los
+clics, wizards y formularios con scripts temporales que importan `qa` (vía shell, mismo
+CDP 9222). NO pide confirmación para navegar, iniciar trámites ni diligenciar. Solo se
+detiene ante la geometría, con el mensaje estándar:
+`[PAUSA CARTOGRÁFICA] Trámite [RADICADO]: Información alfanumérica completada. Pendiente
+carga manual de geometría en [Terreno/Construcción].` y espera "geometría lista"/"cargada".
+Cierra en el Paso 7 (NO pasa a calidad sin orden) y deja el `resumen_<RAD>.txt`.
+Los radicados se procesan EN ORDEN (menor número primero).
+
+- Validación técnica + jurídica de 0237-0240 APROBADA (`validador_qa.py`).
+- **R-2026-0237** (Mut 2a División Material): BLOQUEADO por problema de plataforma
+  (hallazgo 31, confirmado con el responsable). No figura en "Trámites por numerar".
+- **R-2026-0238** (Mut Integral / 3a Cambio Área Construida, NPN
+  763640100000004620024000000000): en Paso 7 con 2 ERRORES que dependen de la
+  geometría del usuario: `2_CLUC_CF_81` (UC #1 con altura None) y `3_ET_CF_108` (2.000
+  digitada vs 3.594,97 m² geométrica). Fuente Admin 7/7, avalúo 2025, UC A año 2013.
+- **R-2026-0239** (Mut 4a Revisión Avalúo, PREDIO #1872): en Paso 7 con 7 errores:
+  3× `2_CLUC_CF_81`, `3_ET_CF_108` (468 vs 299,65), `CUSTOM_UC_PLANTA_DUP`,
+  `CUSTOM_UC_TOTAL_PLANTAS` (geometría) y `CUSTOM_AVALUO_COMPLETO` (hallazgo 29).
+  Pausa cartográfica emitida.
+- **R-2026-0240** (Mut 5a Predios Nuevos Informales): SIGUIENTE en cola. Tipo nuevo; al
+  entrar hay que mapear si pide Asignación de NPN.
+- Antiguos: 0089 (Segregación, pendiente del ajuste de área de la matriz), 0057 (bug IGAC).
+
+Lecciones técnicas de esta sesión (ya en `qa.py`, commit 10d6b54):
+- `cerrar_tour(page)`: cierra el tour de novedades (overlay z-[210]) con "Saltar".
+- `esperar_validaciones(page)`: espera a que termine "Ejecutando validaciones" antes de
+  leer el conteo.
+- `editar_todas_uc(page, semilla)`: completa lo alfanumérico de TODAS las UC del Paso 4.
+- `tramite_auto(..., destino="conservar")`: predios existentes, no toca caracterización
+  ni destino.
+- Paso 5: NO pulsar "Agregar fuente" (crea una fuente vacía que bloquea). Basta con
+  llenar los 7 desplegables y pulsar "Siguiente Paso".
+- Las pestañas de pasos del wizard están deshabilitadas: navegar solo con
+  Anterior/Siguiente (`continuar_wizard`).
+- Firma: `entrar_radicado(page, base_url, radicado)` (base_url va primero).
+- En PowerShell, redirigir la salida con `> archivo 2>&1` y leer el archivo (el pipe
+  directo a veces no devuelve salida).
+
 **Sesión 20/10/2026 (tarde) — LOTE alfanumerico procesado con lote_qa.py.**
 
 Se ejecuto `lote_qa.py` sobre los radicados en Asignado (excluyendo 0057 y 0061 ya
@@ -1293,8 +1339,11 @@ uv run python qa.py
      Calificacion de construccion CONSERVADORA. NUNCA pasar a calidad automatico (lo
      confirma el usuario).
 5. PENDIENTE a pedido del usuario: crear `plantillas/plantilla_topografia/`.
-6. RECORDAR la meta de **50 radicados** e informe final de inconsistencias (van 23
-   hallazgos). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
+6. RECORDAR la meta de **50 radicados** e informe final de inconsistencias (van 33
+   hallazgos en la tabla de la sección 8; el informe Word va en 28, faltan del 29 al
+   33). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
+7. **ESTADO al 04/11/2026** (ver sección 10): siguiente en cola R-2026-0240. En espera
+   de geometría del usuario: 0238 y 0239. Bloqueado por plataforma: 0237.
 
 #### Carpetas NO versionadas (fuera de git por `.gitignore`)
 
@@ -1326,5 +1375,5 @@ con las recomendaciones previas (NPN 30 digitos y copiado en linderos).
 
 ---
 
-_Última actualización: 20/10/2026 (sesión R-2026-0057 bloqueado; comandos de
-automatización del wizard agregados a qa.py)._
+_Última actualización: 04/11/2026 (lote 0237-0240 en modo autónomo; hallazgos 29-33;
+cerrar_tour, esperar_validaciones, editar_todas_uc y modo conservar en qa.py)._
