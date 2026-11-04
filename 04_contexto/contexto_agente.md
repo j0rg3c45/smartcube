@@ -366,7 +366,7 @@ en este proyecto. Mantener solo a título informativo.
 | 26 | R-2026-0089 (y recurrente) | Dirección Estructurada / Nombre del predio (3_ET_CF_112) | CONTRADICCIÓN UI vs validación: al estructurar la dirección, la interfaz autocompleta el campo "Nombre del predio" (p. ej. "Carrera 10 15 48"), pero la validación 3_ET_CF_112 exige que en una Estructurada ese campo vaya VACÍO (el texto lo componen las variables de vía). La UI arma algo que su propia validación rechaza. Ya visto antes como dato de origen en R-2026-0075 (#12); aquí confirmado como comportamiento de la UI. | Captura 20261026_101432. Anexo D. |
 | 27 | R-2026-0067 / 0089 | Asignación de NPN / vinculación "usar como base" | Tras materializar la Asignación de NPN (División/Segregación), el predio NO pasa automáticamente al wizard; hay que vincularlo con la acción "usar como base". Si se omite, el wizard muestra "Sin predios" sin un mensaje que oriente al analista. Afecta usabilidad. | Capturas 0067/0089. Anexo D. |
 | 28 | R-2026-0089 | Estabilidad de la plataforma | Durante el procesamiento de R-2026-0089 (Segregación) se presentó una CONTINGENCIA/CAÍDA de la plataforma que obligó a dejar el trámite pendiente. Revisar estabilidad bajo uso sostenido. | Reportado por el usuario. Anexo D. |
-| 29 | R-2026-0239 | Paso 7 / Avalúo de UC (CUSTOM_AVALUO_COMPLETO) | Las UC B y UC C quedan "sin valor en tabla (zona 00, agro True, uso 86, puntaje 40)". La tabla de valores de construcción no cubre la combinación zona/uso/puntaje que la propia calificación produce, y el error bloquea el trámite. Además salen 3 warnings `2_CLUC_CF_84` (UC sin avalúo_caracterización) y el modal de UC no tiene un campo para diligenciarlo. | Captura 20261104_104327_resumen_0239_final. |
+| 29 | R-2026-0239 | Paso 4-7 / UC Anexo sin valor de avalúo (CUSTOM_AVALUO_COMPLETO) | Las UC catalogadas como tipo **Anexo** con área construida en la base no tienen valor en la tabla de construcción para sus usos de anexo (uso 76/86: glamping, piscina, tanque…) y el error `CUSTOM_AVALUO_COMPLETO` bloquea el trámite. CRITERIO (usuario): un anexo con área construida debe registrarse con un uso ACORDE a su construcción (con valor en tabla), no con un uso de anexo. Así se resolvió el 0239. Pendiente separado: el warning `2_CLUC_CF_84` (UC sin avalúo_caracterización, obligatorio desde 2026) no tiene campo en el modal de UC (informa, no bloquea). | Captura resumen_0239_v3. |
 | 30 | (general, 04/11/2026) | Interfaz / Tour de novedades (MULTICAT) | El nuevo tour de novedades ("Paso 1 de 4", botones Saltar/Siguiente) pone un overlay `div.fixed.inset-0 z-[210]` que intercepta TODOS los clics de la página hasta que se cierra. Reaparece al navegar y bloquea la operación (y la automatización) sin aviso. | Mapeado en la sesión 0239; se resolvió con `cerrar_tour`. |
 | 31 | R-2026-0237 | Asignación de NPN / cola "Trámites por numerar" | El usuario cargó la geometría (Mut 2a División Material), pero el radicado NO aparece en "Trámites por numerar" (la lista empieza en 0236) y el wizard sigue mostrando "Falta la Asignación de NPN". El responsable confirmó que es un problema de la plataforma y el trámite queda bloqueado. También se observó que 0089 sigue en la cola aunque ya se había numerado. | Captura 20261104_102139_asignarnpn_0237. Confirmado con el responsable. |
 | 32 | R-2026-0238 | Paso 5 / Fuente Administrativa ("Agregar fuente") | Al pulsar "Agregar fuente" se crea una SEGUNDA fuente vacía y "Siguiente Paso" deja de avanzar SIN mostrar mensaje de campos faltantes. Hay que eliminarla con "Eliminar" para continuar. Además las pestañas del wizard están deshabilitadas para saltar de paso, así que solo se navega con Anterior/Siguiente. | Sesión 04/11/2026 (automatización). |
@@ -1004,10 +1004,16 @@ Los radicados se procesan EN ORDEN (menor número primero).
   OK) → Pasar borrador → Pasar a calidad. NOTA: tras "Pasar a calidad" la tabla tarda en
   refrescar el estado; con el filtro "Asignado" el radicado ya no aparece (verificar con
   "Todos los trámites").
-- **R-2026-0239** (Mut 4a Revisión Avalúo, PREDIO #1872): en Paso 7 con 7 errores:
-  3× `2_CLUC_CF_81`, `3_ET_CF_108` (468 vs 299,65), `CUSTOM_UC_PLANTA_DUP`,
-  `CUSTOM_UC_TOTAL_PLANTAS` (geometría) y `CUSTOM_AVALUO_COMPLETO` (hallazgo 29).
-  Pausa cartográfica emitida.
+- **R-2026-0239** (Mut 4a Revisión Avalúo, PREDIO #1872): CERRADO (CALIDAD). Empezó con
+  7 errores; la carga de geometría del usuario resolvió alturas (`2_CLUC_CF_81`), el
+  traslape (`CUSTOM_UC_PLANTA_DUP`), el total de plantas de la UC A y el área del terreno
+  (`3_ET_CF_108`). Agregó una UC D nueva (llenada Residencial / Vivienda hasta 3 pisos).
+  El `CUSTOM_AVALUO_COMPLETO` (hallazgo 29) NO era bug: las UC B y C venían como **Anexo**
+  con usos sin valor en tabla (76/86); el usuario las corrigió a un uso acorde a su
+  construcción. Re-validado 0 errores (69 OK) → borrador → calidad.
+  **REGLA (usuario):** una UC catalogada como **Anexo** que tiene área construida en la
+  base NO debe quedar con un uso de anexo (sin valor en tabla), sino con un uso acorde a
+  su construcción (con valor). Es lo que dispara `CUSTOM_AVALUO_COMPLETO`.
 - **R-2026-0240** (Mut 5a Predios Nuevos Informales): SIGUIENTE en cola. Tipo nuevo; al
   entrar hay que mapear si pide Asignación de NPN.
 - Antiguos: 0089 (Segregación, pendiente del ajuste de área de la matriz), 0057 (bug IGAC).
@@ -1360,8 +1366,7 @@ uv run python qa.py
    hallazgos en la tabla de la sección 8, más el 34 y el 35; el informe Word va en 28,
    faltan del 29 al 35). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
 7. **ESTADO al 04/11/2026** (ver sección 10): siguiente en cola R-2026-0240. En espera
-   de geometría del usuario: 0239. 0237 y 0238 CERRADOS (en CALIDAD). Siguiente en cola:
-   0240. Van 35 hallazgos.
+   0237, 0238 y 0239 CERRADOS (en CALIDAD). Siguiente en cola: 0240. Van 35 hallazgos.
 
 #### Carpetas NO versionadas (fuera de git por `.gitignore`)
 
