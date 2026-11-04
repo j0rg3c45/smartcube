@@ -375,6 +375,7 @@ en este proyecto. Mantener solo a título informativo.
 | 35 | R-2026-0237 | Paso 1 / campo nuevo "Área registral (m²)" | Campo nuevo obligatorio con la leyenda "Se compara contra el área del polígono (tabla 109)". En el predio 112080 quedó en 4.380 m² contra 5.593,04 m² del polígono (21,7 %, por encima del 10 %) y el Resumen terminó con 0 errores. La comparación anunciada no se aplica o no bloquea. | Resumen Paso 7 R-2026-0237 (0 errores, 120 OK). |
 | 36 | R-2026-0240 | Paso 2 / Propietario sin derecho Dominio (Predios Nuevos Informales) | En Mutación 5a - Predios Nuevos Informales el propietario del predio nuevo NO admite el derecho "Dominio" ("No disponible para esta mutación: Dominio"); solo Posesión/Ocupación/Tenencia/Falsa Tradición. Es coherente con un predio informal, pero el motor genérico y el formulario parten de Dominio, así que sin elegir otro derecho el propietario no se guarda (quedan "Propietarios (0)" tras varios intentos). | Sesión 04/11/2026 (automatización). |
 | 37 | R-2026-0240 | Paso 3 / Geometría del terreno informal | En Predios Nuevos Informales, la Asignación de NPN numera/materializa el predio pero NO carga el terreno; la geometría del terreno del predio nuevo se sube en el Paso 3 del wizard y debe quedar contenida dentro del terreno de la matriz. Si falta, el Paso 7 marca `CUSTOM_PI_CT_INFORMAL_MATRIZ` ("El predio informal no tiene geometría de terreno cargada"). | Resumen Paso 7 R-2026-0240 (1 error). |
+| 38 | R-2026-0240 | Paso 4 / Destino incoherente al agregar UC a un lote | Si un predio con destino "Lote Urbanizado No Construido" recibe una UC (construcción informal), el Paso 7 marca `CUSTOM_DESTINO_LOTE_SIN_UC` ("tiene 1 unidad de construcción pero destino de lote"). Hay que volver al Paso 1 y cambiar el destino a uno edificado (Habitacional). Es el reverso de la regla ya conocida (lote sin UC no puede ser Habitacional): al pasar de lote a construido el destino NO se actualiza solo. | Sesión 04/11/2026 (automatización). |
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
@@ -1374,7 +1375,7 @@ uv run python qa.py
    faltan del 29 al 35). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
 7. **ESTADO al 04/11/2026** (ver sección 10): siguiente en cola R-2026-0240. En espera
    0237, 0238 y 0239 CERRADOS (en CALIDAD). 0240 en Paso 7 con 1 error geométrico (pausa
-   cartográfica, terreno del Paso 3). Van 37 hallazgos.
+   cartográfica, terreno del Paso 3; la construcción informal ya se llenó). Van 38 hallazgos.
 
 #### Carpetas NO versionadas (fuera de git por `.gitignore`)
 
