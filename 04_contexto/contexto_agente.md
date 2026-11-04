@@ -371,6 +371,8 @@ en este proyecto. Mantener solo a título informativo.
 | 31 | R-2026-0237 | Asignación de NPN / cola "Trámites por numerar" | El usuario cargó la geometría (Mut 2a División Material), pero el radicado NO aparece en "Trámites por numerar" (la lista empieza en 0236) y el wizard sigue mostrando "Falta la Asignación de NPN". El responsable confirmó que es un problema de la plataforma y el trámite queda bloqueado. También se observó que 0089 sigue en la cola aunque ya se había numerado. | Captura 20261104_102139_asignarnpn_0237. Confirmado con el responsable. |
 | 32 | R-2026-0238 | Paso 5 / Fuente Administrativa ("Agregar fuente") | Al pulsar "Agregar fuente" se crea una SEGUNDA fuente vacía y "Siguiente Paso" deja de avanzar SIN mostrar mensaje de campos faltantes. Hay que eliminarla con "Eliminar" para continuar. Además las pestañas del wizard están deshabilitadas para saltar de paso, así que solo se navega con Anterior/Siguiente. | Sesión 04/11/2026 (automatización). |
 | 33 | R-2026-0238 | Paso 2 / % de participación | En la Mutación 3a el propietario (URBANIZADORA CIUDAD DE DIOS SAS) figura al 0% de participación y es de SOLO LECTURA: no se puede corregir a 100% y la validación no lo reporta. Dato inconsistente que pasa al acto administrativo. | Resumen de cambios del Paso 7 (Dominio 0%). |
+| 34 | R-2026-0237 | Wizard multipredio (División) / avance por paso | Cada paso exige que TODOS los predios resultantes estén diligenciados antes de avanzar. Con un predio pendiente, "Continuar" queda deshabilitado (Paso 1) o "Siguiente Paso" no avanza (Paso 2). El único aviso es un texto pequeño ("Falta diligenciar otro predio nuevo: …0424000000000") y no dice qué campo falta. Usabilidad baja. | Sesión 04/11/2026 (automatización). |
+| 35 | R-2026-0237 | Paso 1 / campo nuevo "Área registral (m²)" | Campo nuevo obligatorio con la leyenda "Se compara contra el área del polígono (tabla 109)". En el predio 112080 quedó en 4.380 m² contra 5.593,04 m² del polígono (21,7 %, por encima del 10 %) y el Resumen terminó con 0 errores. La comparación anunciada no se aplica o no bloquea. | Resumen Paso 7 R-2026-0237 (0 errores, 120 OK). |
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
@@ -981,8 +983,16 @@ Cierra en el Paso 7 (NO pasa a calidad sin orden) y deja el `resumen_<RAD>.txt`.
 Los radicados se procesan EN ORDEN (menor número primero).
 
 - Validación técnica + jurídica de 0237-0240 APROBADA (`validador_qa.py`).
-- **R-2026-0237** (Mut 2a División Material): BLOQUEADO por problema de plataforma
-  (hallazgo 31, confirmado con el responsable). No figura en "Trámites por numerar".
+- **R-2026-0237** (Mut 2a División Material): estuvo bloqueado por la plataforma
+  (hallazgo 31) y el responsable hizo el ajuste. Predios #112080 (…0423, 5.593,04 m²)
+  y #112081 (…0424, 1.009,32 m²), ambos lotes. **Paso 7 con 0 ERRORES** (120 OK), listo
+  para calidad cuando el usuario lo ordene. Hallazgos 34 y 35.
+  Técnica multipredio: el wizard se recorre PASO A PASO para todos los predios
+  (seleccionar_predio + acción del paso en cada uno, y recién entonces avanzar). NO
+  correr `tramite_auto` completo por predio: se estanca en el Paso 2 y agrega
+  propietarios repetidos. La fuente administrativa y la vigencia del avalúo son únicas
+  del trámite. `continuar_wizard` puede lanzar un timeout de networkidle en el Paso 2→3
+  aunque sí avanza (capturar la excepción).
 - **R-2026-0238** (Mut Integral / 3a Cambio Área Construida, NPN
   763640100000004620024000000000): en Paso 7 con 2 ERRORES que dependen de la
   geometría del usuario: `2_CLUC_CF_81` (UC #1 con altura None) y `3_ET_CF_108` (2.000
@@ -1340,10 +1350,11 @@ uv run python qa.py
      confirma el usuario).
 5. PENDIENTE a pedido del usuario: crear `plantillas/plantilla_topografia/`.
 6. RECORDAR la meta de **50 radicados** e informe final de inconsistencias (van 33
-   hallazgos en la tabla de la sección 8; el informe Word va en 28, faltan del 29 al
-   33). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
+   hallazgos en la tabla de la sección 8, más el 34 y el 35; el informe Word va en 28,
+   faltan del 29 al 35). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
 7. **ESTADO al 04/11/2026** (ver sección 10): siguiente en cola R-2026-0240. En espera
-   de geometría del usuario: 0238 y 0239. Bloqueado por plataforma: 0237.
+   de geometría del usuario: 0238 y 0239. 0237 en Paso 7 con 0 errores (listo para
+   calidad). Van 35 hallazgos.
 
 #### Carpetas NO versionadas (fuera de git por `.gitignore`)
 
