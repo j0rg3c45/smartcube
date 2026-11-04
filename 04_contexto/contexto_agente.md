@@ -373,6 +373,8 @@ en este proyecto. Mantener solo a título informativo.
 | 33 | R-2026-0238 | Paso 2 / % de participación | En la Mutación 3a el propietario (URBANIZADORA CIUDAD DE DIOS SAS) figura al 0% de participación y es de SOLO LECTURA: no se puede corregir a 100% y la validación no lo reporta. Dato inconsistente que pasa al acto administrativo. | Resumen de cambios del Paso 7 (Dominio 0%). |
 | 34 | R-2026-0237 | Wizard multipredio (División) / avance por paso | Cada paso exige que TODOS los predios resultantes estén diligenciados antes de avanzar. Con un predio pendiente, "Continuar" queda deshabilitado (Paso 1) o "Siguiente Paso" no avanza (Paso 2). El único aviso es un texto pequeño ("Falta diligenciar otro predio nuevo: …0424000000000") y no dice qué campo falta. Usabilidad baja. | Sesión 04/11/2026 (automatización). |
 | 35 | R-2026-0237 | Paso 1 / campo nuevo "Área registral (m²)" | Campo nuevo obligatorio con la leyenda "Se compara contra el área del polígono (tabla 109)". En el predio 112080 quedó en 4.380 m² contra 5.593,04 m² del polígono (21,7 %, por encima del 10 %) y el Resumen terminó con 0 errores. La comparación anunciada no se aplica o no bloquea. | Resumen Paso 7 R-2026-0237 (0 errores, 120 OK). |
+| 36 | R-2026-0240 | Paso 2 / Propietario sin derecho Dominio (Predios Nuevos Informales) | En Mutación 5a - Predios Nuevos Informales el propietario del predio nuevo NO admite el derecho "Dominio" ("No disponible para esta mutación: Dominio"); solo Posesión/Ocupación/Tenencia/Falsa Tradición. Es coherente con un predio informal, pero el motor genérico y el formulario parten de Dominio, así que sin elegir otro derecho el propietario no se guarda (quedan "Propietarios (0)" tras varios intentos). | Sesión 04/11/2026 (automatización). |
+| 37 | R-2026-0240 | Paso 3 / Geometría del terreno informal | En Predios Nuevos Informales, la Asignación de NPN numera/materializa el predio pero NO carga el terreno; la geometría del terreno del predio nuevo se sube en el Paso 3 del wizard y debe quedar contenida dentro del terreno de la matriz. Si falta, el Paso 7 marca `CUSTOM_PI_CT_INFORMAL_MATRIZ` ("El predio informal no tiene geometría de terreno cargada"). | Resumen Paso 7 R-2026-0240 (1 error). |
 
 > Nota: hallazgos marcados "por confirmar" aún no son definitivos; se validan antes del informe.
 
@@ -1014,8 +1016,13 @@ Los radicados se procesan EN ORDEN (menor número primero).
   **REGLA (usuario):** una UC catalogada como **Anexo** que tiene área construida en la
   base NO debe quedar con un uso de anexo (sin valor en tabla), sino con un uso acorde a
   su construcción (con valor). Es lo que dispara `CUSTOM_AVALUO_COMPLETO`.
-- **R-2026-0240** (Mut 5a Predios Nuevos Informales): SIGUIENTE en cola. Tipo nuevo; al
-  entrar hay que mapear si pide Asignación de NPN.
+- **R-2026-0240** (Mut 5a Predios Nuevos Informales): requiere Asignación de NPN
+  (geometría del usuario) ANTES del wizard. Tras cargar la geometría, el predio nuevo
+  quedó materializado (matriz …2473; PREDIO #112082 NPN
+  763640001000000016755200000000). Wizard llevado a Paso 7 con 1 error geométrico
+  (`CUSTOM_PI_CT_INFORMAL_MATRIZ`: falta el terreno del Paso 3). Hallazgos 36 y 37.
+  CLAVE: el propietario NO admite Dominio (usar Posesión/Ocupación); la geometría del
+  terreno informal va en el Paso 3, no en Asignación de NPN.
 - Antiguos: 0089 (Segregación, pendiente del ajuste de área de la matriz), 0057 (bug IGAC).
 
 Lecciones técnicas de esta sesión (ya en `qa.py`, commit 10d6b54):
@@ -1366,7 +1373,8 @@ uv run python qa.py
    hallazgos en la tabla de la sección 8, más el 34 y el 35; el informe Word va en 28,
    faltan del 29 al 35). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
 7. **ESTADO al 04/11/2026** (ver sección 10): siguiente en cola R-2026-0240. En espera
-   0237, 0238 y 0239 CERRADOS (en CALIDAD). Siguiente en cola: 0240. Van 35 hallazgos.
+   0237, 0238 y 0239 CERRADOS (en CALIDAD). 0240 en Paso 7 con 1 error geométrico (pausa
+   cartográfica, terreno del Paso 3). Van 37 hallazgos.
 
 #### Carpetas NO versionadas (fuera de git por `.gitignore`)
 
