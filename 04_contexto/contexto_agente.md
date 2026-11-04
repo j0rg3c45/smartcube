@@ -985,8 +985,12 @@ Los radicados se procesan EN ORDEN (menor número primero).
 - Validación técnica + jurídica de 0237-0240 APROBADA (`validador_qa.py`).
 - **R-2026-0237** (Mut 2a División Material): estuvo bloqueado por la plataforma
   (hallazgo 31) y el responsable hizo el ajuste. Predios #112080 (…0423, 5.593,04 m²)
-  y #112081 (…0424, 1.009,32 m²), ambos lotes. **Paso 7 con 0 ERRORES** (120 OK), listo
-  para calidad cuando el usuario lo ordene. Hallazgos 34 y 35.
+  y #112081 (…0424, 1.009,32 m²), ambos lotes. Paso 7 con 0 ERRORES (120 OK) → Pasar
+  borrador → Pasar a calidad. **CERRADO: estado CALIDAD** (verificado). Hallazgos 34 y 35.
+- **REGLA NUEVA (usuario, 04/11/2026):** si el Resumen da 0 errores, el agente pulsa él
+  mismo "Pasar borrador acto administrativo", espera la vista previa del Paso 8 y pulsa
+  "Pasar a calidad" (no sale modal). Luego verifica el estado CALIDAD en el listado y así
+  el trámite queda terminado. Con errores no se pasa.
   Técnica multipredio: el wizard se recorre PASO A PASO para todos los predios
   (seleccionar_predio + acción del paso en cada uno, y recién entonces avanzar). NO
   correr `tramite_auto` completo por predio: se estanca en el Paso 2 y agrega
@@ -1353,8 +1357,7 @@ uv run python qa.py
    hallazgos en la tabla de la sección 8, más el 34 y el 35; el informe Word va en 28,
    faltan del 29 al 35). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
 7. **ESTADO al 04/11/2026** (ver sección 10): siguiente en cola R-2026-0240. En espera
-   de geometría del usuario: 0238 y 0239. 0237 en Paso 7 con 0 errores (listo para
-   calidad). Van 35 hallazgos.
+   de geometría del usuario: 0238 y 0239. 0237 CERRADO (en CALIDAD). Van 35 hallazgos.
 
 #### Carpetas NO versionadas (fuera de git por `.gitignore`)
 
