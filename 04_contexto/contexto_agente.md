@@ -998,9 +998,12 @@ Los radicados se procesan EN ORDEN (menor número primero).
   del trámite. `continuar_wizard` puede lanzar un timeout de networkidle en el Paso 2→3
   aunque sí avanza (capturar la excepción).
 - **R-2026-0238** (Mut Integral / 3a Cambio Área Construida, NPN
-  763640100000004620024000000000): en Paso 7 con 2 ERRORES que dependen de la
-  geometría del usuario: `2_CLUC_CF_81` (UC #1 con altura None) y `3_ET_CF_108` (2.000
-  digitada vs 3.594,97 m² geométrica). Fuente Admin 7/7, avalúo 2025, UC A año 2013.
+  763640100000004620024000000000): CERRADO (CALIDAD). El usuario cargó la geometría de
+  la construcción (se resolvió `2_CLUC_CF_81` altura) y reportó que `3_ET_CF_108` (área
+  2.000 vs 3.594,97 m²) era un error de plataforma; re-validado quedó en 0 errores (62
+  OK) → Pasar borrador → Pasar a calidad. NOTA: tras "Pasar a calidad" la tabla tarda en
+  refrescar el estado; con el filtro "Asignado" el radicado ya no aparece (verificar con
+  "Todos los trámites").
 - **R-2026-0239** (Mut 4a Revisión Avalúo, PREDIO #1872): en Paso 7 con 7 errores:
   3× `2_CLUC_CF_81`, `3_ET_CF_108` (468 vs 299,65), `CUSTOM_UC_PLANTA_DUP`,
   `CUSTOM_UC_TOTAL_PLANTAS` (geometría) y `CUSTOM_AVALUO_COMPLETO` (hallazgo 29).
@@ -1357,7 +1360,8 @@ uv run python qa.py
    hallazgos en la tabla de la sección 8, más el 34 y el 35; el informe Word va en 28,
    faltan del 29 al 35). Informe base en `06_Informe/Informe_QA_SmartCube_Jamundi.docx`.
 7. **ESTADO al 04/11/2026** (ver sección 10): siguiente en cola R-2026-0240. En espera
-   de geometría del usuario: 0238 y 0239. 0237 CERRADO (en CALIDAD). Van 35 hallazgos.
+   de geometría del usuario: 0239. 0237 y 0238 CERRADOS (en CALIDAD). Siguiente en cola:
+   0240. Van 35 hallazgos.
 
 #### Carpetas NO versionadas (fuera de git por `.gitignore`)
 
