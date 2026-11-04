@@ -1422,6 +1422,78 @@ def autopaso(page, semilla: str = "") -> dict:
     return {"editados": editados, "bloqueados": bloqueados}
 
 
+def editar_todas_uc(page, semilla: str = "") -> int:
+    """Paso 4 (Construccion): recorre TODAS las unidades de construccion existentes
+    (icono 'edit' de cada tarjeta) y completa lo ALFANUMERICO de cada una: anio de
+    construccion (distinto por UC) y calificacion catastral conservadora (via
+    llenar_construccion), y pulsa 'Actualizar UC'. NO toca geometria (altura/poligonos
+    son reserva del usuario). Devuelve cuantas UC edito.
+
+    Evita editar dos veces la misma UC leyendo el titulo del modal ('Editar UC A')."""
+    import random
+    rnd = random.Random((semilla or "uc") + "-uc")
+    cerrar_tour(page)
+    total = page.get_by_text("edit", exact=True).count()
+    print(f"  [uc] Unidades de construccion detectadas: {total}")
+    visitadas, editadas = set(), 0
+    for intento in range(max(total * 2, 1)):
+        if editadas >= total:
+            break
+        cerrar_tour(page)
+        iconos = page.get_by_text("edit", exact=True)
+        if iconos.count() == 0:
+            break
+        try:
+            iconos.nth(intento % iconos.count()).click()
+            page.wait_for_timeout(1000)
+        except Exception as e:
+            print(f"  [uc] no se pudo abrir la edicion: {type(e).__name__}")
+            continue
+        titulo = ""
+        try:
+            h = page.locator("h2, h3").filter(has_text="Editar UC")
+            if h.count() > 0:
+                titulo = h.first.inner_text().strip()
+        except Exception:
+            pass
+        if titulo in visitadas:
+            c = page.locator("button", has_text="Cancelar")
+            if c.count() > 0:
+                c.first.click()
+                page.wait_for_timeout(500)
+            continue
+        visitadas.add(titulo)
+        anio = str(rnd.randint(1995, 2018))
+        print(f"  [uc] {titulo or 'UC'}: anio {anio} + calificacion conservadora")
+        try:
+            llenar_construccion(page, anio, f"{semilla}-uc{len(visitadas)}")
+        except Exception as e:
+            print(f"  [uc] llenar_construccion: {type(e).__name__}")
+        guardado = False
+        for txt in ("Actualizar UC", "Actualizar", "Guardar"):
+            b = page.locator("button.bg-primary", has_text=txt)
+            if b.count() == 0:
+                b = page.get_by_role("button", name=txt)
+            if b.count() > 0:
+                try:
+                    b.last.click()
+                    page.wait_for_timeout(1500)
+                    guardado = True
+                    break
+                except Exception:
+                    continue
+        if guardado:
+            editadas += 1
+        else:
+            print(f"  [uc] {titulo}: no se pudo guardar (revisar el modal).")
+            c = page.locator("button", has_text="Cancelar")
+            if c.count() > 0:
+                c.first.click()
+                page.wait_for_timeout(500)
+    print(f"  [uc] UC editadas: {editadas}/{total}")
+    return editadas
+
+
 def seleccionar_predio(page, clave: str) -> bool:
     """Selecciona un predio del panel 'LISTADO DE PREDIOS' clicando el <button> que lo
     contiene. 'clave' puede ser el NPN (30 digitos) o el numero de predio (p. ej. 112071).
@@ -1718,6 +1790,7 @@ def tramite_auto(page, semilla: str = "", anio_avaluo: str = "2025",
     mapeo = {"editados": [], "bloqueados": [], "pasos": []}
     visto = {}
     for _ in range(24):
+        cerrar_tour(page)
         try:
             cuerpo = page.locator("body").inner_text()
         except Exception:
@@ -1758,19 +1831,26 @@ def tramite_auto(page, semilla: str = "", anio_avaluo: str = "2025",
             #   b) Direccion -> si no hay, agregar una estructurada UNICA (modal aparte).
             # El resto (matricula numerica, etc.) lo pone el autopaso.
             if n == 1:
-                try:
-                    caracterizacion_ladm(page, "Privado", "Dominio")
-                except Exception as e:
-                    print(f"  [auto] caracterizacion: {type(e).__name__}")
-                # Destino Economico coherente. Si se indico uno, usarlo. Si NO, y el
-                # predio no tendra construccion (lote de Division/Segregacion), usar
-                # 'Lote Urbanizado No Construido' para no disparar CUSTOM_DESTINO_REQUIERE_UC
-                # (destino Habitacional/Comercial/Industrial EXIGE una unidad de construccion).
-                destino_obj = destino or "Lote Urbanizado No Construido"
-                try:
-                    cambiar_destino(page, destino_obj)
-                except Exception as e:
-                    print(f"  [auto] destino: {type(e).__name__}")
+                # MODO 'conservar' (destino="conservar"): predio EXISTENTE (Revision de
+                # Avaluo, Rectificaciones, Cambio de NPN...). No se toca la caracterizacion
+                # ni el destino que ya trae; solo se rellena lo que falte.
+                conservar = (destino or "").strip().lower() == "conservar"
+                if conservar:
+                    print("  [auto] Paso 1: se CONSERVAN caracterizacion y destino del predio.")
+                else:
+                    try:
+                        caracterizacion_ladm(page, "Privado", "Dominio")
+                    except Exception as e:
+                        print(f"  [auto] caracterizacion: {type(e).__name__}")
+                    # Destino Economico coherente. Si se indico uno, usarlo. Si NO, y el
+                    # predio no tendra construccion (lote de Division/Segregacion), usar
+                    # 'Lote Urbanizado No Construido' para no disparar
+                    # CUSTOM_DESTINO_REQUIERE_UC (Habitacional/Comercial/Industrial exigen UC).
+                    destino_obj = destino or "Lote Urbanizado No Construido"
+                    try:
+                        cambiar_destino(page, destino_obj)
+                    except Exception as e:
+                        print(f"  [auto] destino: {type(e).__name__}")
                 if "Sin direcciones registradas" in cuerpo:
                     try:
                         print("  [auto] Paso 1 sin direccion: se agrega una estructurada.")
@@ -1837,6 +1917,8 @@ def tramite_auto(page, semilla: str = "", anio_avaluo: str = "2025",
             if not m:
                 m = _re.search(etq + r"\s*[\r\n]+\s*(\d+)", cuerpo, _re.IGNORECASE)
             return m.group(1) if m else None
+        esperar_validaciones(page)  # el Resumen tarda en ejecutar las validaciones
+        cuerpo = page.locator("body").inner_text()
         err = _c("ERRORES")
         mapeo["errores"] = err
         print(f"  [auto] RESUMEN -> errores: {err or '?'} | warnings: {_c('WARNINGS') or '?'} "
@@ -2661,9 +2743,47 @@ def llenar_direccion(page, vp_valor, vp_letra, vg_valor, vg_letra, num_predio):
     print(f"  Direccion llenada: VP {vp_valor}{vp_letra} / VG {vg_valor}{vg_letra} / Nro {num_predio}")
 
 
+def esperar_validaciones(page, timeout_s: int = 45) -> bool:
+    """Espera a que el Resumen termine de ejecutar las validaciones: desaparece
+    'Ejecutando validaciones...'/'VALIDANDO...' y aparece el contador ERRORES.
+    Evita leer el conteo antes de tiempo ('? ? ?'). True si termino a tiempo."""
+    for _ in range(timeout_s * 2):
+        try:
+            t = page.locator("body").inner_text()
+        except Exception:
+            t = ""
+        if ("Ejecutando validaciones" not in t and "VALIDANDO" not in t.upper()
+                and "ERRORES" in t.upper()):
+            return True
+        page.wait_for_timeout(500)
+    return False
+
+
+def cerrar_tour(page) -> bool:
+    """Descarta el tour de novedades de la plataforma (popup 'Nuevo ... Paso 1 de 4' con
+    botones 'Saltar'/'Siguiente') que cubre la pantalla con un overlay
+    (div.fixed.inset-0 z-[210]) e intercepta TODOS los clics. Aparece al abrir pasos
+    nuevos de la version MULTICAT. Devuelve True si cerro algun tour."""
+    cerrado = False
+    for _ in range(4):  # puede haber varios tours encadenados
+        try:
+            b = page.locator("button", has_text="Saltar")
+            if b.count() > 0 and b.first.is_visible():
+                b.first.click(timeout=3000)
+                page.wait_for_timeout(500)
+                cerrado = True
+                print("  [tour] Tour de novedades descartado ('Saltar').")
+                continue
+        except Exception:
+            pass
+        break
+    return cerrado
+
+
 def continuar_wizard(page) -> None:
     """Pulsa el boton de avanzar del wizard. El nombre cambia entre pasos:
     'Continuar' (paso 1) o 'Siguiente Paso' (pasos siguientes)."""
+    cerrar_tour(page)  # un tour de novedades bloquea los clics si esta abierto
     boton = None
     # El nombre del boton cambia por paso: 'Continuar' (1), 'Siguiente Paso' (2-4),
     # 'Siguiente: Resumen Final' (paso 4 Construccion -> Resumen), 'Pasar borrador...'.
